@@ -31,7 +31,7 @@ npm run start
 - **Gestión de rankings:** crea el evento con lugar, fecha, aforo y tarifa diferenciada. Desde su vista de gestión se copian enlaces de inscripción, se revisan los participantes y pagos de prueba, se asigna un peso de siembra del 1 al 5 y se generan grupos balanceados de hasta cinco personas. La inscripción pública está en `/ranking/[id]` y solo agrega al participante luego de completar el paso de pago de demostración. Editar y eliminar están disponibles en las tablas administrativas.
 - **Pagos:** historial de ejemplo y resumen de renovación; la pasarela de pago todavía no está conectada.
 
-La navegación inferior funciona en móvil. El panel de administración incluye navegación, búsqueda, creación local de registros y una vista previa de personalización. Los datos son de muestra y se reinician al recargar. Autenticación, roles, base de datos, pagos reales, correo y persistencia de la marca por subdominio todavía requieren servicios backend.
+La navegación inferior funciona en móvil. El panel de administración incluye navegación, búsqueda, creación local de registros y una vista previa de personalización. Los datos de ejemplo de cursos, alumnos y clases viven en memoria; los rankings se conservan en `localStorage` para probar la inscripción entre pestañas del mismo navegador. Para compartir rankings entre dispositivos y usarlo con alumnos reales, faltan la base de datos, la autenticación, los pagos, los correos y el servicio backend.
 
 ## Reglas acordadas para el recorrido del estudiante
 

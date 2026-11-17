@@ -34,7 +34,7 @@ export default function LoginForm() {
           <label htmlFor="email">Correo electrónico</label>
           <div className="input-wrap"><Mail size={18} /><input id="email" name="email" type="email" placeholder="nombre@correo.com" autoComplete="email" required /></div>
 
-          <div className="password-label"><label htmlFor="password">Contraseña</label><button type="button" className="forgot-link" onClick={() => setMessage("Solicita el restablecimiento de tu contraseña a tu academia.")}>¿Olvidaste tu contraseña?</button></div>
+          <div className="password-label"><label htmlFor="password">Contraseña</label><Link href="/recuperar-clave" className="forgot-link">¿Olvidaste tu contraseña?</Link></div>
           <div className="input-wrap"><LockKeyhole size={18} /><input id="password" name="password" type={showPassword ? "text" : "password"} placeholder="Ingresa tu contraseña" autoComplete="current-password" required minLength={6} /><button className="reveal-button" type="button" aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
 
           <label className="remember-option"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span className="custom-check" />Recordarme en este dispositivo</label>
@@ -42,9 +42,10 @@ export default function LoginForm() {
           {message && <p className="login-message" role="status">{message}</p>}
         </form>
 
-        <div className="login-divider"><span /> <small>ACCESO SEGURO</small> <span /></div>
+        <div className="login-divider"><span /> <small>O CONTINÚA CON</small> <span /></div>
+        <button className="google-button" type="button" onClick={() => setMessage("El acceso con Google se activará al configurar la autenticación de la academia.")}><span className="google-g">G</span>Continuar con Google</button>
         <div className="secure-note"><ShieldCheck size={17} /><span>Tus datos están protegidos y solo los verá tu academia.</span></div>
-        <p className="login-help">¿Aún no tienes acceso? <button onClick={() => setMessage("Comunícate con la administración de tu academia para activar tu cuenta.")}>Pide ayuda a tu academia</button></p>
+        <p className="login-help">¿Primera vez aquí? <Link href="/registro">Crear cuenta</Link></p>
       </div>
       <p className="login-copyright">© 2026 SpinAcademy <span>·</span> Hecho para seguir mejorando</p>
     </section>

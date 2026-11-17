@@ -20,6 +20,7 @@
 html { background: var(--page); scroll-behavior: smooth; }
 body { margin: 0; background: var(--page); color: var(--text); font-family: 'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
 button { color: inherit; font: inherit; }
+button:disabled { cursor: not-allowed; opacity: .68; transform: none !important; }
 button:focus-visible { outline: 3px solid rgba(37, 99, 235, .28); outline-offset: 2px; }
 .app-shell { min-height: 100dvh; padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
 .topbar { position: sticky; z-index: 10; top: 0; display: flex; align-items: center; justify-content: space-between; min-height: 66px; padding: 10px max(20px, calc((100vw - 760px) / 2)); background: rgba(255,255,255,.95); border-bottom: 1px solid var(--line); backdrop-filter: blur(12px); }
@@ -66,6 +67,12 @@ button:focus-visible { outline: 3px solid rgba(37, 99, 235, .28); outline-offset
 .button-primary { background: var(--brand); color: white; box-shadow: 0 2px 4px rgba(11,80,200,.18); }
 .button-primary:hover { background: var(--brand-hover); box-shadow: 0 4px 10px rgba(11,80,200,.18); }
 .button-full { width: 100%; }
+.attendance-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 13px; }
+.attendance-actions .button { min-width: 0; padding: 0 8px; }
+.button-decline-selected { background: #e9edf4; color: #34445f; box-shadow: inset 0 0 0 1px #d5dce7; }
+.attendance-status { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: #e3f8ef; color: #08734f; font-size: 10px; font-weight: 700; }
+.attendance-status.declined { background: #eef1f5; color: #667184; }
+.class-attendance-actions { margin-top: 14px; }
 .class-card .button { margin-top: 13px; min-height: 39px; border-radius: 11px; font-size: 11px; }
 .button-success { background: var(--success); }
 .button-soft { min-height: 34px; padding: 0 13px; border-radius: 9px; background: #f0f2f5; color: #46505f; font-size: 11px; }
@@ -270,6 +277,7 @@ button:focus-visible { outline: 3px solid rgba(37, 99, 235, .28); outline-offset
 .input-wrap input::placeholder { color: #a5adba; }
 .password-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 1px; }
 .forgot-link { padding: 0; border: 0; background: transparent; color: var(--brand); font-size: 10px; font-weight: 700; cursor: pointer; }
+.forgot-link { text-decoration: none; }
 .reveal-button { display: grid; width: 28px; height: 28px; flex: 0 0 auto; place-items: center; border: 0; background: transparent; color: #8a95a5; cursor: pointer; }
 .remember-option { position: relative; display: inline-flex; width: fit-content; align-items: center; gap: 8px; margin: 0 0 8px; color: #687487; font-size: 11px; cursor: pointer; }
 .remember-option input { position: absolute; width: 18px; height: 18px; margin: 0; opacity: 0; }
@@ -287,8 +295,47 @@ button:focus-visible { outline: 3px solid rgba(37, 99, 235, .28); outline-offset
 .secure-note svg { flex: 0 0 auto; color: var(--brand); }
 .login-help { margin: 28px 0 0; color: #7a8595; font-size: 11px; text-align: center; }
 .login-help button { padding: 0; border: 0; background: transparent; color: var(--brand); font: inherit; font-weight: 700; cursor: pointer; }
+.login-help a { color: var(--brand); font-weight: 700; text-decoration: none; }
 .login-copyright { margin: 28px 0 0; color: #a2aab6; font-size: 9px; text-align: center; }
 .login-copyright span { padding: 0 4px; }
+.google-button { display: flex; width: 100%; min-height: 45px; align-items: center; justify-content: center; gap: 10px; margin: 0 0 17px; border: 1px solid #dfe4ec; border-radius: 12px; background: white; color: #2f3b4e; font-size: 12px; font-weight: 700; cursor: pointer; transition: border-color .16s ease, background .16s ease; }
+.google-button:hover { border-color: #c8d6ef; background: #f9fbff; }
+.google-g { font-family: Arial, sans-serif; font-size: 17px; font-weight: 800; background: conic-gradient(from -45deg, #4285f4 0 25%, #34a853 25% 50%, #fbbc05 50% 75%, #ea4335 75%); color: transparent; -webkit-background-clip: text; background-clip: text; }
+.auth-page { display: grid; min-height: 100dvh; place-items: center; padding: 28px 18px; background: var(--page); }
+.auth-card { width: min(100%, 470px); padding: clamp(23px, 5vw, 40px); border: 1px solid var(--line); border-radius: 22px; background: white; box-shadow: 0 12px 44px rgba(30,55,100,.08); }
+.auth-card .back-link { margin-bottom: 23px; }
+.auth-brand { margin-bottom: 30px; color: #182334; text-decoration: none; }
+.auth-card .login-heading { margin-bottom: 23px; }
+.auth-card .login-heading h2 { font-size: 29px; }
+.auth-card .login-form { gap: 8px; }
+.auth-card .login-form .input-wrap { margin-bottom: 6px; }
+.auth-card .login-divider { margin-top: 19px; }
+.auth-card .google-button { margin-bottom: 7px; }
+.auth-card .login-help { margin-top: 22px; }
+.auth-card .login-help a, .password-label a { color: var(--brand); font-weight: 700; text-decoration: none; }
+.auth-card .login-help a:hover, .password-label a:hover { text-decoration: underline; }
+.recovery-mark { display: grid; width: 48px; height: 48px; place-items: center; margin: 0 0 22px; border-radius: 15px; background: var(--brand-soft); color: var(--brand); }
+.recovery-card .login-message { margin-top: 14px; }
+.modal-backdrop { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(16, 29, 48, .42); backdrop-filter: blur(4px); animation: enter .18s ease both; }
+.payment-modal { width: min(100%, 480px); max-height: min(84dvh, 700px); overflow-y: auto; padding: 22px; border: 1px solid rgba(255,255,255,.7); border-radius: 20px; background: white; box-shadow: 0 18px 60px rgba(18,35,64,.2); }
+.modal-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 17px; }
+.modal-heading h2 { margin: 5px 0 0; font-size: 21px; letter-spacing: -.6px; }
+.payment-history-list { display: grid; gap: 8px; }
+.payment-history-item { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #edf0f5; border-radius: 13px; background: #fcfdff; }
+.payment-icon { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border-radius: 10px; background: var(--brand-soft); color: var(--brand); }
+.payment-description { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
+.payment-description strong, .payment-amount strong { font-size: 11px; }
+.payment-description span { color: var(--muted); font-size: 10px; }
+.payment-amount { display: flex; flex: 0 0 auto; flex-direction: column; align-items: flex-end; gap: 4px; }
+.payment-amount .status-badge { padding: 2px 6px; font-size: 9px; }
+.renew-summary { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 15px; border: 1px solid #e5ecfa; border-radius: 13px; background: #f8faff; }
+.renew-summary > span { font-size: 12px; font-weight: 700; }
+.renew-summary > strong { color: var(--brand); font-size: 16px; }
+.renew-summary > small { grid-column: 1 / -1; color: var(--muted); font-size: 10px; }
+.payment-note { margin: 13px 2px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.modal-pay-button { min-height: 44px; }
+.modal-pay-button svg { margin-left: auto; }
+.modal-close-link { display: block; margin: 13px auto 0; padding: 6px 10px; border: 0; background: transparent; color: var(--muted); font-size: 11px; font-weight: 600; cursor: pointer; }
 
 @media (min-width: 700px) {
   .app-shell { padding-bottom: 30px; }

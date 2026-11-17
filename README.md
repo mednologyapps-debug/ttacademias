@@ -18,9 +18,21 @@ Cada registro de negocio pertenece a una academia mediante `academy_id`. La acad
 
 Roles previstos: administrador global, administrador de academia, profesor y estudiante. El rol de academia se asigna por membresía para permitir que una persona tenga acceso a más de una academia. Las operaciones administrativas globales se ejecutarán en servidor con permisos restringidos y auditables.
 
+## Marca configurable por academia
+
+El administrador de cada academia podrá cargar su logo y elegir sus colores de marca. Esta configuración se guardará por academia y se aplicará en todo su subdominio mediante variables de tema, incluyendo las vistas del estudiante, profesor y administrador. Al cambiar de subdominio, la app cargará la marca correspondiente.
+
+Paleta inicial para los prototipos de estudiante:
+- **Blanco `#FFFFFF`**: tarjetas, navegación y superficies principales.
+- **Soft Blue `#B6DFED`**: fondos suaves, chips y elementos seleccionados.
+- **Midnight Navy `#002941`**: texto destacado, navegación activa y botones principales.
+- **Coral Orange `#FD6E6E`**: acentos y llamadas a la acción puntuales.
+
+La paleta anterior es el tema predeterminado del producto; cada academia podrá definir el suyo. El sistema mantendrá contraste y legibilidad al aplicar colores personalizados.
+
 ## Primera entrega: estudiante
 
-La primera interfaz será la vista de estudiante, optimizada para móvil. Se recomienda comenzar por inicio de sesión, resumen de próximas clases, avisos, pagos/renovación y rankings con inscripción. El diseño visual y el orden final de los módulos se ajustarán a los prototipos que comparta el cliente antes de implementar esas pantallas.
+La primera interfaz será la vista de estudiante, optimizada para móvil. Se recomienda comenzar por inicio de sesión, resumen de próximas clases, avisos, pagos/renovación y rankings con inscripción. El diseño visual y el orden final de los módulos se ajustarán a los prototipos que comparta el cliente antes de implementar esas pantallas. Los prototipos actuales conservan estructura y contenido; el cambio aprobado aquí es solo de paleta.
 
 ## Próximos pasos
 

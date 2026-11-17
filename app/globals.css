@@ -972,6 +972,13 @@ button:focus-visible { outline: 3px solid rgba(37, 99, 235, .28); outline-offset
 .ranking-public-loading,.ranking-public-unavailable { width:min(100%,480px); margin:15vh auto; padding:32px; text-align:center; }
 .ranking-public-unavailable h1 { font-size:21px; }
 .ranking-public-unavailable p { color:#79869a; font-size:12px; }
+.ranking-dni-match { display:flex; align-items:center; gap:9px; min-height:42px; padding:9px 11px; border:1px solid #cbe9dc; border-radius:9px; background:#f0fbf6; color:#14815d; }
+.ranking-dni-match > span { display:grid; gap:3px; }
+.ranking-dni-match strong { color:#245b49; font-size:11px; }
+.ranking-dni-match small { color:#4d8a73; font-size:9px; }
+.ranking-dni-match.public-match { margin:0; }
+.ranking-external-note { padding:9px 10px; border:1px solid #f0dfb6; border-radius:8px; background:#fffaf0; color:#806425; font-size:10px; line-height:1.5; }
+.ranking-add-participant .ranking-dni-match { min-height:43px; }
 
 @media (max-width:900px) { .ranking-admin-layout { grid-template-columns:1fr; } }
 @media (max-width:680px) {

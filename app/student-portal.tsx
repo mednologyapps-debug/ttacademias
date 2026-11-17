@@ -203,7 +203,7 @@ function ProfileView({ onToast }: { onToast: (message: string) => void }) {
     </div></section>
     <section className="section-block profile-section"><h2>Privacidad y seguridad</h2><div className="card settings-card">
       <button className="settings-row" onClick={() => onToast("Tu cuenta está protegida")}><ShieldCheck size={19} /><span><strong>Seguridad de la cuenta</strong><small>Contraseña y acceso</small></span><ChevronRight size={18} /></button>
-      <button className="settings-row logout-row" onClick={() => onToast("Cierre de sesión estará disponible al activar el acceso")}><LogOut size={19} /><span><strong>Cerrar sesión</strong></span><ChevronRight size={18} /></button>
+      <button className="settings-row logout-row" onClick={() => window.location.assign("/login")}><LogOut size={19} /><span><strong>Cerrar sesión</strong></span><ChevronRight size={18} /></button>
     </div></section>
     <div className="profile-footnote"><CalendarCheck size={16} /> Miembro desde marzo de 2024</div>
   </>;

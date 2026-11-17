@@ -27,7 +27,7 @@ npm run start
 - **Rankings:** lista de competencias activas, detalle, pago de demostración, confirmación de inscripción, grupos y tabla de clasificación.
 - **Mi Perfil:** datos de cuenta, pagos, notificaciones, ayuda y seguridad.
 - **Acceso:** `/login`, registro por correo en `/registro`, recuperación en `/recuperar-clave` y botón de Google; son maquetas y aún no se conectan a un proveedor de autenticación.
-- **Administración:** `/admin`, panel con resumen, alumnos, profesores, horarios, clases, rankings, pagos, avisos y personalización de marca.
+- **Administración:** `/admin`, panel con resumen, alumnos, profesores, horarios, clases, rankings, pagos, avisos y personalización de marca. El formulario de alumno solicita nombre, fecha de nacimiento, correo, celular y nivel. El de profesor agrega disponibilidad semanal seleccionable en bloques de dos horas. En horarios se puede asignar profesor, nivel y varios alumnos.
 - **Pagos:** historial de ejemplo y resumen de renovación; la pasarela de pago todavía no está conectada.
 
 La navegación inferior funciona en móvil. El panel de administración incluye navegación, búsqueda, creación local de registros y una vista previa de personalización. Los datos son de muestra y se reinician al recargar. Autenticación, roles, base de datos, pagos reales, correo y persistencia de la marca por subdominio todavía requieren servicios backend.

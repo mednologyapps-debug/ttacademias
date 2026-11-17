@@ -690,3 +690,90 @@ button:focus-visible { outline: 3px solid rgba(37, 99, 235, .28); outline-offset
   .ranking-detail-layout { grid-template-columns: 1fr; }
   .ranking-steps-card { position: static; }
 }
+
+/* Clearer typography and the staff/class creation calendars */
+.admin-app { font-size: 14px; letter-spacing: .005em; }
+.admin-nav-caption { font-size: 10px; }
+.admin-nav-item { font-size: 13px; }
+.admin-brand { font-size: 17px; }
+.academy-switch small { font-size: 11px; }
+.admin-breadcrumb { font-size: 13px; }
+.admin-search input { font-size: 12px; }
+.admin-profile strong, .admin-user strong { font-size: 12px; }
+.admin-user small { font-size: 11px; }
+.admin-page-heading p { font-size: 13px; }
+.admin-eyebrow { font-size: 10px; }
+.admin-primary-button, .admin-secondary-button { font-size: 12px; }
+.admin-filterbar button, .admin-list-toolbar > button { font-size: 11px; }
+.admin-live { font-size: 11px; }
+.stat-label { font-size: 11px; }
+.stat-delta { font-size: 10px; }
+.admin-card-heading h2 { font-size: 14px; }
+.admin-card-heading p { font-size: 11px; }
+.chart-legend { font-size: 10px; }
+.chart-y-labels, .chart-x-labels { font-size: 9px; }
+.chart-footnote { font-size: 10px; }
+.agenda-summary { font-size: 11px; }
+.agenda-details strong { font-size: 11px; }
+.agenda-details > span { font-size: 10px; }
+.agenda-details small { font-size: 9px; }
+.agenda-status { font-size: 9px; }
+.admin-plain-link { font-size: 11px; }
+.activity-item strong { font-size: 11px; }
+.activity-item p { font-size: 10px; }
+.activity-item > small { font-size: 9px; }
+.quick-action strong { font-size: 10px; }
+.quick-action small { font-size: 9px; }
+.tenant-domain { font-size: 11px; }
+.admin-form-label { font-size: 11px; }
+.admin-form-label input:not([type=color]), .admin-form-label select { height: 43px; font-size: 12px; }
+.admin-form-hint { font-size: 10px; }
+.admin-list-toolbar > span { font-size: 11px; }
+.admin-table-wrap th { font-size: 9px; }
+.admin-table-wrap td { font-size: 11px; }
+.admin-table-wrap td strong { font-size: 11px; }
+.table-status { font-size: 10px; }
+.admin-modal-heading p { font-size: 11px; }
+
+.admin-form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px; }
+.admin-form-modal.teacher-modal { width: min(100%, 790px); max-height: min(92dvh, 900px); overflow-y: auto; }
+.admin-form-modal.schedule-modal { width: min(100%, 620px); max-height: min(92dvh, 900px); overflow-y: auto; }
+.teacher-calendar-wrap { padding: 14px; border: 1px solid #e9edf3; border-radius: 12px; background: #fbfcfe; }
+.teacher-calendar-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.teacher-calendar-heading > div { display: grid; gap: 4px; }
+.teacher-calendar-heading strong { color: #263347; font-size: 12px; }
+.teacher-calendar-heading span { color: #8792a1; font-size: 10px; }
+.calendar-week-control { display: flex; align-items: center; gap: 5px; min-height: 32px; padding: 0 9px; border: 1px solid #e4e9f0; border-radius: 8px; background: white; color: #536176; font-size: 10px; font-weight: 600; cursor: pointer; }
+.teacher-calendar-scroll { overflow-x: auto; padding-bottom: 2px; }
+.teacher-calendar { display: grid; min-width: 680px; grid-template-columns: 76px repeat(7,minmax(52px,1fr)); gap: 4px; }
+.teacher-calendar-corner, .teacher-calendar-day { display: grid; min-height: 42px; place-items: center; align-content: center; border-radius: 8px; background: #f2f5fa; color: #8b96a5; font-size: 9px; }
+.teacher-calendar-day { gap: 2px; background: white; }
+.teacher-calendar-day strong { color: #4a5669; font-size: 10px; }
+.teacher-calendar-day small { color: #9aa4b2; font-size: 9px; }
+.teacher-calendar-row { display: contents; }
+.teacher-calendar-time { display: flex; min-height: 36px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding-left: 5px; color: #566276; font-size: 9px; font-weight: 650; }
+.teacher-calendar-time small { color: #9aa4b2; font-size: 8px; font-weight: 500; }
+.teacher-slot { display: grid; min-height: 36px; place-items: center; border: 1px solid #e9edf3; border-radius: 7px; background: #fff; color: #fff; cursor: pointer; transition: background .16s ease, border-color .16s ease, transform .16s ease, box-shadow .16s ease; }
+.teacher-slot:hover { transform: translateY(-1px); border-color: #b7c9ec; background: #f4f7ff; }
+.teacher-slot.selected { border-color: var(--admin-brand); background: var(--admin-brand); box-shadow: 0 2px 5px color-mix(in srgb, var(--admin-brand) 20%, transparent); }
+.teacher-calendar-footer { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e9edf3; color: #7d8998; font-size: 10px; }
+.teacher-calendar-footer strong { color: var(--admin-brand); }
+.schedule-duration-note { display: flex; align-items: center; gap: 9px; padding: 11px 12px; border: 1px solid #e5ecf7; border-radius: 9px; background: #f7f9fd; color: #687589; font-size: 11px; }
+.schedule-duration-note svg { color: var(--admin-brand); }
+.schedule-duration-note strong { margin-left: auto; color: #263347; font-size: 11px; }
+.schedule-student-picker { min-width: 0; margin: 0; padding: 12px; border: 1px solid #e8edf3; border-radius: 10px; }
+.schedule-student-picker legend { padding: 0 5px; color: #596679; font-size: 11px; font-weight: 700; }
+.schedule-student-picker legend span { margin-left: 8px; color: #929cab; font-size: 10px; font-weight: 500; }
+.schedule-student-picker > div { display: grid; max-height: 170px; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; overflow-y: auto; }
+.schedule-student-option { display: flex; min-width: 0; align-items: center; gap: 8px; padding: 8px; border: 1px solid #edf0f4; border-radius: 8px; background: #fff; cursor: pointer; }
+.schedule-student-option:has(input:checked) { border-color: #b9cff7; background: #f5f8ff; }
+.schedule-student-option input { accent-color: var(--admin-brand); }
+.schedule-student-option > span { display: grid; width: 25px; height: 25px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #e8efff; color: var(--admin-brand); font-size: 10px; font-weight: 750; }
+.schedule-student-option strong { overflow: hidden; color: #445166; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 620px) {
+  .admin-form-grid { grid-template-columns: 1fr; }
+  .teacher-calendar-wrap { padding: 10px; }
+  .teacher-calendar-heading { align-items: flex-start; flex-direction: column; }
+  .schedule-student-picker > div { grid-template-columns: 1fr; }
+}

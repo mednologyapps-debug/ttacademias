@@ -1,6 +1,6 @@
-# TT Academias — portal de estudiante
+# TT Academias — portal de academia
 
-Primera versión responsive del portal de estudiante para academias de tenis de mesa, con maquetas de inicio de sesión, registro y recuperación de contraseña. Está construida con Next.js, React y TypeScript. Los datos que se muestran son de demostración; todavía no hay autenticación, base de datos, OAuth de Google, pagos ni correos conectados.
+Primera versión responsive para academias de tenis de mesa, con portal de estudiante y panel de administración optimizado para desktop. Incluye maquetas de inicio de sesión, registro y recuperación de contraseña. Está construida con Next.js, React y TypeScript. Los datos que se muestran son de demostración; todavía no hay autenticación, base de datos, OAuth de Google, pagos ni correos conectados.
 
 ## Ejecutar en Visual Studio Code
 
@@ -23,19 +23,20 @@ npm run start
 ## Pantallas incluidas
 
 - **Inicio:** aviso de sede, clase de hoy, membresía y próximo torneo.
-- **Mis Clases:** calendario semanal, sesiones, historial/filtros visuales y recuperación de clase.
-- **Rankings:** torneo, grupo asignado y tabla de clasificación.
+- **Mis Clases:** calendario semanal, sesiones e historial/filtros visuales.
+- **Rankings:** lista de competencias activas, detalle, pago de demostración, confirmación de inscripción, grupos y tabla de clasificación.
 - **Mi Perfil:** datos de cuenta, pagos, notificaciones, ayuda y seguridad.
-- **Acceso:** login, registro por correo, recuperación de contraseña y botones de Google; son maquetas y aún no se conectan a un proveedor de autenticación.
+- **Acceso:** `/login`, registro por correo en `/registro`, recuperación en `/recuperar-clave` y botón de Google; son maquetas y aún no se conectan a un proveedor de autenticación.
+- **Administración:** `/admin`, panel con resumen, alumnos, profesores, horarios, clases, rankings, pagos, avisos y personalización de marca.
 - **Pagos:** historial de ejemplo y resumen de renovación; la pasarela de pago todavía no está conectada.
 
-La navegación inferior funciona en móvil; los botones principales muestran sus estados de interacción localmente. La información es de muestra y se reinicia al recargar.
+La navegación inferior funciona en móvil. El panel de administración incluye navegación, búsqueda, creación local de registros y una vista previa de personalización. Los datos son de muestra y se reinician al recargar. Autenticación, roles, base de datos, pagos reales, correo y persistencia de la marca por subdominio todavía requieren servicios backend.
 
 ## Reglas acordadas para el recorrido del estudiante
 
 - En las clases, el estudiante solo marca si asistirá o no. No puede reservar, reprogramar ni recuperar créditos.
 - En membresía puede renovar el plan, realizar el pago y consultar el historial.
-- La inscripción a un ranking solo se confirma tras el pago aprobado. El estudiante no puede retirarse después de inscribirse.
+- La inscripción a un ranking solo se confirma tras el pago aprobado. El estudiante no puede retirarse después de inscribirse. La vista ofrece un botón de simulación para recorrer el flujo; no procesa cargos reales.
 - Los rankings se mantienen sencillos para una comunidad pequeña; se muestran grupos/resultados cuando el estudiante ya está inscrito.
 - Se incluyen avisos y preferencias de cuenta/notificaciones.
 
@@ -58,4 +59,5 @@ app/
   page.tsx          Página de entrada
   student-portal.tsx Vistas interactivas del estudiante
   login/            Maqueta responsive del inicio de sesión
+  admin/            Panel responsive de administración
 ```

@@ -28,7 +28,7 @@ export default function LoginForm() {
     <section className="login-panel">
       <div className="login-card-wrap">
         <Link href="/" className="back-link"><ArrowLeft size={16} /> Volver al portal</Link>
-        <div className="login-heading"><div className="login-mobile-mark"><Activity size={21} /></div><span className="login-eyebrow">PORTAL DEL ESTUDIANTE</span><h2>Qué bueno verte.</h2><p>Ingresa a tu cuenta para continuar.</p></div>
+        <div className="login-heading"><h2>Qué bueno verte.</h2><p>Ingresa a tu cuenta para continuar.</p></div>
 
         <form className="login-form" onSubmit={handleSubmit}>
           <label htmlFor="email">Correo electrónico</label>
@@ -44,7 +44,6 @@ export default function LoginForm() {
 
         <div className="login-divider"><span /> <small>O CONTINÚA CON</small> <span /></div>
         <button className="google-button" type="button" onClick={() => setMessage("El acceso con Google se activará al configurar la autenticación de la academia.")}><span className="google-g">G</span>Continuar con Google</button>
-        <div className="secure-note"><ShieldCheck size={17} /><span>Tus datos están protegidos y solo los verá tu academia.</span></div>
         <p className="login-help">¿Primera vez aquí? <Link href="/registro">Crear cuenta</Link></p>
       </div>
       <p className="login-copyright">© 2026 SpinAcademy <span>·</span> Hecho para seguir mejorando</p>

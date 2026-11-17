@@ -118,7 +118,7 @@ export default function StudentPortal() {
                 <p className="subtle">Fase de técnica y lectura de efecto</p>
                 <div className="coach-box"><span className="label">PROFESOR</span><div className="coach-line"><div className="avatar avatar-coach">CM</div><strong>C. Mendoza</strong></div></div>
                 <div className="attendance-actions">
-                  <button className={`button ${attendance === "yes" ? "button-success" : "button-primary"}`} onClick={() => markAttendance("yes")}><CheckCircle2 size={16} />{attendance === "yes" ? "Asistiré" : "Sí, asistiré"}</button>
+                  <button className="button button-success" onClick={() => markAttendance("yes")}><CheckCircle2 size={16} />{attendance === "yes" ? "Asistiré" : "Sí, asistiré"}</button>
                   <button className={`button ${attendance === "no" ? "button-decline-selected" : "button-soft"}`} onClick={() => markAttendance("no")}>{attendance === "no" ? "No asistiré ✓" : "No asistiré"}</button>
                 </div>
               </article>
@@ -177,7 +177,7 @@ function ClassesView({ onToast, attendance, onMarkAttendance }: { onToast: (mess
       <div className="today-class-time"><Clock3 size={19} /><strong>6:00 PM - 7:30 PM</strong></div><p className="subtle">Duración: 90 minutos</p>
       <div className="level-strip">Intermedio: Control de Saques &amp; Topspin</div>
       <div className="teacher-row"><div className="avatar avatar-coach large">CM</div><div className="teacher-info"><strong>Prof. Carlos Mendoza</strong><span><Star size={15} fill="currentColor" /> 4.9 <i>(128 clases)</i></span></div><span className={`attendance-status ${attendance === "no" ? "declined" : ""}`}>{attendance === "yes" ? "Asistiré" : attendance === "no" ? "No asistiré" : "Sin confirmar"}</span></div>
-      <div className="attendance-actions class-attendance-actions"><button className={`button ${attendance === "yes" ? "button-success" : "button-primary"}`} onClick={() => onMarkAttendance("yes")}><CheckCircle2 size={16} />Sí, asistiré</button><button className={`button ${attendance === "no" ? "button-decline-selected" : "button-soft"}`} onClick={() => onMarkAttendance("no")}>No asistiré</button></div>
+      <div className="attendance-actions class-attendance-actions"><button className="button button-success" onClick={() => onMarkAttendance("yes")}><CheckCircle2 size={16} />Sí, asistiré</button><button className={`button ${attendance === "no" ? "button-decline-selected" : "button-soft"}`} onClick={() => onMarkAttendance("no")}>No asistiré</button></div>
     </article>
     <section className="section-block upcoming-block"><div className="section-heading"><h2>Próximas Sesiones</h2><button className="text-link" onClick={() => onToast("Mostrando todas tus sesiones")}>Ver más completo</button></div>
       <div className="session-list">{sessions.map((session) => <article className="card session-card" key={session.title}><div className="date-tile"><span>{session.day}</span><strong>{session.date}</strong></div><div className="session-info"><strong>{session.title}</strong><p>{session.time} • {session.coach}</p></div><div className={`avatar avatar-small ${session.tone}`}>{session.initials}</div><button className="more-button" aria-label={`Más opciones para ${session.title}`} onClick={() => onToast("Opciones de sesión") }><MoreVertical size={20} /></button></article>)}</div>

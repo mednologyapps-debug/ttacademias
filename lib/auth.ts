@@ -19,7 +19,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   const raw = (await cookies()).get(COOKIE)?.value;
   if (!raw) return null;
   const [rows] = await getDb().query<(AuthUser & { expiresAt: Date } & RowDataPacket)[]>(
-    "SELECT u.id,u.full_name AS name,u.email,u.role,u.academy_id AS academyId,a.name AS academyName,a.slug AS academySlug,s.expires_at AS expiresAt FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN academies a ON a.id=u.academy_id WHERE s.id=? AND s.expires_at>NOW() AND u.status='active' LIMIT 1", [digest(raw)]);
+    "SELECT u.id,u.full_name AS name,u.email,u.role,u.academy_id AS academyId,a.name AS academyName,a.slug AS academySlug,s.expires_at AS expiresAt FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN academies a ON a.id=u.academy_id WHERE s.id=? AND s.expires_at>NOW() AND u.status='active' AND (u.role='global_admin' OR a.status='active') LIMIT 1", [digest(raw)]);
   return rows[0] || null;
 }
 

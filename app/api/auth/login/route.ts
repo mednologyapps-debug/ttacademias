@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const user = rows[0];
     if (!user || user.status !== "active" || !user.password_hash || !(await bcrypt.compare(password, user.password_hash))) return NextResponse.json({ error: "Correo o contraseña incorrectos." }, { status: 401 });
     await createSession(user.id, Boolean(body.remember));
-    const redirect = user.role === "global_admin" ? "/global-admin" : user.role === "academy_admin" ? "/admin" : user.role === "teacher" ? "/profesor" : "/";
+    const redirect = user.role === "global_admin" ? "/global-admin" : user.role === "academy_admin" ? "/admin" : user.role === "teacher" ? "/profesor" : "/estudiante";
     return NextResponse.json({ ok: true, redirect });
   } catch (error) {
     const status = (error as Error).message === "DATABASE_NOT_CONFIGURED" ? 503 : 500;

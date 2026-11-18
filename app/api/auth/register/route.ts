@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const id = randomUUID();
     await db.execute("INSERT INTO users (id,academy_id,email,password_hash,full_name,dni,phone,role) VALUES (?,?,?,?,?,?,?,'student')", [id, academies[0].id, email, await bcrypt.hash(password, 12), fullName, dni, String(body.phone || "").trim() || null]);
     await createSession(id);
-    return NextResponse.json({ ok: true, redirect: "/" }, { status: 201 });
+    return NextResponse.json({ ok: true, redirect: "/estudiante" }, { status: 201 });
   } catch (error) {
     const code = (error as { code?: string })?.code;
     if (code === "ER_DUP_ENTRY") return NextResponse.json({ error: "Ya existe una cuenta con ese correo o DNI en esta academia." }, { status: 409 });

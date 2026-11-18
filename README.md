@@ -34,7 +34,8 @@ Ejecuta `npm run bootstrap:admin` una sola vez y elimina las variables `BOOTSTRA
 
 ## Rutas y estado de funciones
 
-- `/`: inicio y secciones de estudiante; asistencia, historial, membresía y ranking todavía usan datos de demostración.
+- `/`: portada pública del portal, con acceso e inscripción; si ya hay una sesión, dirige a la vista del rol.
+- `/estudiante`: portal privado del estudiante; asistencia, historial, membresía y ranking todavía usan datos de demostración.
 - `/login`, `/registro`, `/recuperar-clave`: login con cookie segura, registro de estudiante dentro del subdominio y cambio de contraseña mediante enlace de un solo uso. La recuperación requiere SMTP.
 - `/ranking/[id]`: inscripción pública por ranking de demostración; aún guarda datos del navegador.
 - `/admin`: panel de academia con persistencia real para identidad (nombre, logo y color del subdominio); las demás operaciones del panel siguen siendo locales.

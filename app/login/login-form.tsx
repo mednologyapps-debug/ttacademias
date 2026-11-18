@@ -8,10 +8,19 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage("La autenticación se conectará cuando configuremos las cuentas de la academia.");
+    setBusy(true); setMessage("");
+    const form = new FormData(event.currentTarget);
+    try {
+      const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: form.get("email"), password: form.get("password"), remember }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "No se pudo iniciar sesión.");
+      window.location.assign(result.redirect || "/");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo iniciar sesión."); }
+    finally { setBusy(false); }
   }
 
   return <main className="login-page">
@@ -38,12 +47,12 @@ export default function LoginForm() {
           <div className="input-wrap"><LockKeyhole size={18} /><input id="password" name="password" type={showPassword ? "text" : "password"} placeholder="Ingresa tu contraseña" autoComplete="current-password" required minLength={6} /><button className="reveal-button" type="button" aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
 
           <label className="remember-option"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span className="custom-check" />Recordarme en este dispositivo</label>
-          <button className="button button-primary login-submit" type="submit">Ingresar a mi cuenta <ArrowRight size={17} /></button>
+          <button className="button button-primary login-submit" type="submit" disabled={busy}>{busy ? "Ingresando…" : "Ingresar a mi cuenta"} {!busy && <ArrowRight size={17} />}</button>
           {message && <p className="login-message" role="status">{message}</p>}
         </form>
 
         <div className="login-divider"><span /> <small>O CONTINÚA CON</small> <span /></div>
-        <button className="google-button" type="button" onClick={() => setMessage("El acceso con Google se activará al configurar la autenticación de la academia.")}><span className="google-g">G</span>Continuar con Google</button>
+        <button className="google-button" type="button" onClick={() => setMessage("El acceso con Google requiere configurar las credenciales OAuth de producción.")}><span className="google-g">G</span>Continuar con Google</button>
         <p className="login-help">¿Primera vez aquí? <Link href="/registro">Crear cuenta</Link></p>
       </div>
       <p className="login-copyright">© 2026 SpinAcademy <span>·</span> Hecho para seguir mejorando</p>

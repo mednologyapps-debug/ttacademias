@@ -1,64 +1,58 @@
-# TT Academias — portal de academia
+# TT Academias
 
-Primera versión responsive para academias de tenis de mesa, con portal de estudiante y panel de administración optimizado para desktop. Incluye maquetas de inicio de sesión, registro y recuperación de contraseña. Está construida con Next.js, React y TypeScript. Los datos que se muestran son de demostración; todavía no hay autenticación, base de datos, OAuth de Google, pagos ni correos conectados.
+Aplicación responsive en Next.js 16 / React 19 / TypeScript, preparada para academias aisladas por subdominio. Las vistas incluyen portal de estudiante y panel de academia; autenticación inicial y recuperación de contraseña ya usan API y MySQL. **No está lista para producción todavía:** pagos, Google OAuth, permisos completos por rol y persistencia de todas las operaciones del panel aún requieren implementación/configuración.
 
-## Ejecutar en Visual Studio Code
+## Desarrollo local
 
-Requisitos: Node.js 20.9 o superior (se recomienda Node.js 22) y npm.
+Requiere Node.js 20.9+ y npm.
 
 ```bash
-git clone https://github.com/mednologyapps-debug/ttacademias.git
-cd ttacademias
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
-Abre `http://localhost:3000` en el navegador. Para generar una compilación local de producción:
+Abre `http://localhost:3000`. Para comprobar la compilación optimizada: `npm run build` y luego `npm run start`.
 
-```bash
-npm run build
-npm run start
+## Base de datos y primer acceso
+
+La aplicación usa MySQL, disponible en Hostinger. Crea una base de datos y usuario en hPanel, configura su cadena `DATABASE_URL` en `.env.local`, e importa `database/schema.sql` desde phpMyAdmin. Luego configura estas variables para crear la primera academia y el administrador global:
+
+```env
+BASE_DOMAIN=ttacademias.com
+BOOTSTRAP_ACADEMY_NAME=Academia de prueba
+BOOTSTRAP_ACADEMY_SLUG=demo
+BOOTSTRAP_ADMIN_NAME=Administrador global
+BOOTSTRAP_ADMIN_EMAIL=admin@ttacademias.com
+BOOTSTRAP_ADMIN_PASSWORD=una-clave-larga-y-unica
 ```
 
-## Pantallas incluidas
+Ejecuta `npm run bootstrap:admin` una sola vez y elimina las variables `BOOTSTRAP_*` al terminar. En producción establece `DATABASE_URL`, `AUTH_SECRET` (reservado para integraciones posteriores), `APP_URL`, `BASE_DOMAIN` y los datos SMTP. La ruta `/api/health` informa si la base responde. Para local, establece `DEFAULT_ACADEMY_SLUG=demo` para que registro/login de academia funcionen en `localhost`.
 
-- **Inicio:** aviso de sede, clase de hoy, membresía y próximo torneo.
-- **Mis Clases:** calendario semanal, sesiones e historial/filtros visuales.
-- **Rankings:** lista de competencias activas, detalle, pago de demostración, confirmación de inscripción, grupos y tabla de clasificación.
-- **Mi Perfil:** datos de cuenta, pagos, notificaciones, ayuda y seguridad.
-- **Acceso:** `/login`, registro por correo en `/registro`, recuperación en `/recuperar-clave` y botón de Google; son maquetas y aún no se conectan a un proveedor de autenticación.
-- **Administración:** `/admin`, panel con resumen, alumnos, profesores, cursos, clases, rankings, pagos, avisos y personalización de marca. El formulario de alumno solicita nombre, fecha de nacimiento, correo, celular y nivel. El profesor registra esos datos, selecciona los niveles que enseña y marca su disponibilidad semanal en bloques de dos horas. Cada curso reúne nivel, profesores asociados, participantes, costo total, fechas de vigencia y horarios semanales; el botón **Ver y editar horario** permite ajustarlos con una revisión y confirmación antes de guardar. Al programar clases, solo se ofrecen fechas dentro de la vigencia del curso que coincidan con los días y horas definidos.
-- **Gestión de rankings:** crea el evento con lugar, fecha, aforo y tarifa diferenciada. El admin puede generar un enlace de pago a partir del DNI; la plataforma busca coincidencia con el padrón de alumnos y determina automáticamente tarifa de academia o tarifa externa. En la inscripción pública también se valida el DNI y el pago de demostración confirma el cupo. Se asigna peso de siembra del 1 al 5 y se generan grupos balanceados de hasta cinco personas. Editar y eliminar están disponibles en las tablas administrativas.
-- **Pagos:** historial de ejemplo y resumen de renovación; la pasarela de pago todavía no está conectada.
+## Rutas y estado de funciones
 
-La navegación inferior funciona en móvil. El panel de administración incluye navegación, búsqueda, creación local de registros y una vista previa de personalización. Los datos de cursos, alumnos y clases viven en memoria; el padrón de DNI y los rankings se conservan en `localStorage` para probar el flujo entre pestañas del mismo navegador. Para reconocer DNI y compartir inscripciones entre dispositivos, se necesita conectar una base de datos y una API protegida. Los pagos reales, autenticación y correo también requieren sus integraciones.
+- `/`: inicio y secciones de estudiante; asistencia, pago, torneos y parte del perfil siguen usando datos locales/de ejemplo.
+- `/login`, `/registro`, `/recuperar-clave`: login con cookie segura, registro de estudiante dentro del subdominio y cambio de contraseña mediante enlace de un solo uso. La recuperación requiere SMTP.
+- `/ranking/[id]`: inscripción pública por ranking de demostración; todavía guarda datos del navegador y muestra flujo de pago no real.
+- `/admin`: panel visual para gestionar alumnos, profesores, cursos, clases, rankings, pagos, anuncios y tema de marca. Las acciones actuales no se guardan en MySQL y faltan los permisos/roles de profesor y administrador global.
+- `/api/health`, `/api/auth/*`: infraestructura inicial de estado, registro/login/logout/usuario actual/recuperación.
 
-## Reglas acordadas para el recorrido del estudiante
+## Infraestructura implementada
 
-- En las clases, el estudiante solo marca si asistirá o no. No puede reservar, reprogramar ni recuperar créditos.
-- En membresía puede renovar el plan, realizar el pago y consultar el historial.
-- La inscripción a un ranking solo se confirma tras el pago aprobado. El estudiante no puede retirarse después de inscribirse. La vista ofrece un botón de simulación para recorrer el flujo; no procesa cargos reales.
-- Los rankings se mantienen sencillos para una comunidad pequeña; se muestran grupos/resultados cuando el estudiante ya está inscrito.
-- Se incluyen avisos y preferencias de cuenta/notificaciones.
+- `database/schema.sql`: modelo MySQL multiacademia para usuarios, sesiones, cursos, horarios, clases, asistencia, avisos, membresías, pagos, rankings y grupos/inscripciones.
+- Tenant por subdominio, relación con DNI dentro de academia, hash de contraseña bcrypt y sesión opaca en cookie `HttpOnly`.
+- Plantilla de variables en `.env.example`; no contiene secretos.
 
-## Paleta y tipografía actuales
+## Pendiente antes de producción
 
-- Azul principal: `#0B50C8`
-- Azul brillante: `#2563EB`
-- Blanco: `#FFFFFF`
-- Azules muy claros y grises neutros para superficies, divisiones y texto secundario
-- Inter Variable, autoalojada en el proyecto para que la tipografía no dependa de Google Fonts en tiempo de ejecución
+1. Conectar las vistas del alumno/admin/profesor a servicios MySQL; ahora las vistas admin/ranking y otras secciones conservan datos de demostración o `localStorage`.
+2. Implementar control de acceso y autorización de los cuatro roles en cada ruta/API, gestión de academias/usuarios y carga segura de logos.
+3. Elegir e integrar pasarela peruana (Izipay u otra): checkout, webhooks firmados e idempotentes, estados de pago, conciliación y reembolsos. No activar cobros con el botón de demostración.
+4. Configurar y probar SMTP (recuperación, verificación de correo y avisos) y Google OAuth con dominio/callback de producción.
+5. Crear DNS wildcard `*.ttacademias.com`, SSL y despliegue Node.js de Next.js en Hostinger Unlimited; confirmar límites, variables de entorno y conexión MySQL del plan contratado.
+6. Añadir auditoría, consentimiento/privacidad, políticas y términos, estrategia de backups/restauración, monitoreo, rate limiting, protección anti abuso y pruebas integrales de flujos en móvil/desktop.
+7. Implementar actualizaciones en tiempo real (por ejemplo, disponibilidad de cupos/avisos); MySQL del hosting por sí solo no resuelve WebSockets entrantes.
 
-El color de marca está definido como variable CSS `--brand` en `app/globals.css`. Más adelante, el administrador de cada academia podrá cargar su logo y paleta; el portal leerá esos valores según el subdominio y los aplicará al tema completo de esa academia.
+## Diseño
 
-## Estructura
-
-```text
-app/
-  globals.css       Estilos responsive y tema
-  layout.tsx        Metadata y layout raíz
-  page.tsx          Página de entrada
-  student-portal.tsx Vistas interactivas del estudiante
-  login/            Maqueta responsive del inicio de sesión
-  admin/            Panel responsive de administración
-```
+La interfaz mantiene la paleta azul/blanco solicitada, tipografía Inter Variable autoalojada y diseño adaptable a móvil y escritorio. El panel academia tiene personalización de logo/colores como vista previa; aplicar el tema guardado a todo el subdominio requiere conectar esa configuración a MySQL.

@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     if (process.env.NODE_ENV !== "production" && password === "test" && ["testadmin", "testuser"].includes(username)) {
       const role = username === "testadmin" ? "academy_admin" : "student";
       (await cookies()).set("tt_demo_role", role, { httpOnly: true, secure: false, sameSite: "lax", path: "/", maxAge: 8 * 60 * 60 });
-      return NextResponse.json({ ok: true, redirect: role === "academy_admin" ? "/admin" : "/estudiante", demo: true });
+      return NextResponse.json({ ok: true, redirect: role === "academy_admin" ? "/admin" : "/alumno", demo: true });
     }
     const email = username;
     const academySlug = await getAcademySlug(); const db = getDb();
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const user = rows[0];
     if (!user || user.status !== "active" || !user.password_hash || !(await bcrypt.compare(password, user.password_hash))) return NextResponse.json({ error: "Correo o contraseña incorrectos." }, { status: 401 });
     await createSession(user.id, Boolean(body.remember));
-    const redirect = user.role === "global_admin" ? "/global-admin" : user.role === "academy_admin" ? "/admin" : user.role === "teacher" ? "/profesor" : "/estudiante";
+    const redirect = user.role === "global_admin" ? "/global-admin" : user.role === "academy_admin" ? "/admin" : user.role === "teacher" ? "/profesores" : "/alumno";
     return NextResponse.json({ ok: true, redirect });
   } catch (error) {
     const status = (error as Error).message === "DATABASE_NOT_CONFIGURED" ? 503 : 500;

@@ -2,7 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { Activity, ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, Sparkles } from "lucide-react";
+import AcademyBrand from "@/components/academy-brand";
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -24,10 +25,10 @@ export default function LoginForm() {
   }
 
   return <main className="login-page">
-    <section className="login-visual" aria-label="Bienvenida a SpinAcademy">
+    <section className="login-visual" aria-label="Bienvenida a TT Academias">
       <div className="visual-orb orb-one" /><div className="visual-orb orb-two" />
       <div className="visual-content">
-        <Link href="/" className="brand login-brand"><span className="brand-mark"><Activity size={20} strokeWidth={2.6} /></span><span>Spin<span className="brand-light">Academy</span></span></Link>
+        <Link href="/" className="brand login-brand"><AcademyBrand /></Link>
         <div className="visual-copy"><span className="visual-kicker"><Sparkles size={14} /> TU SIGUIENTE PUNTO EMPIEZA AQUÍ</span><h1>Entrena con<br />un plan claro.</h1><p>Clases, seguimiento y torneos de tu academia en un solo lugar.</p></div>
         <div className="visual-quote"><div className="quote-score"><span>RANKING</span><strong>#14 <small>/ 120</small></strong><div className="score-track"><i /></div></div><div className="quote-message"><div className="quote-icon"><ShieldCheck size={19} /></div><div><strong>Tu progreso, siempre contigo</strong><p>Revisa tus sesiones y sigue mejorando.</p></div></div></div>
         <p className="visual-footer">Comunidad · Constancia · Juego</p>
@@ -57,7 +58,7 @@ export default function LoginForm() {
         <button className="google-button" type="button" onClick={() => setMessage("El acceso con Google requiere configurar las credenciales OAuth de producción.")}><span className="google-g">G</span>Continuar con Google</button>
         <p className="login-help">¿Primera vez aquí? <Link href="/registro">Crear cuenta</Link></p>
       </div>
-      <p className="login-copyright">© 2026 SpinAcademy <span>·</span> Hecho para seguir mejorando</p>
+      <p className="login-copyright">© 2026 TT Academias <span>·</span> Hecho para seguir mejorando</p>
     </section>
   </main>;
 }

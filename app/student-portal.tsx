@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity,
   ArrowRight,
@@ -53,6 +53,7 @@ const standings = [
 ];
 
 export default function StudentPortal() {
+  const [academyBrand, setAcademyBrand] = useState({ name: "SpinAcademy", logoUrl: "" });
   const [tab, setTab] = useState<Tab>("Inicio");
   const [noticeVisible, setNoticeVisible] = useState(true);
   const [attendance, setAttendance] = useState<"yes" | "no" | null>(null);
@@ -61,6 +62,8 @@ export default function StudentPortal() {
   const [registered, setRegistered] = useState(true);
   const [paymentView, setPaymentView] = useState<"history" | "renew" | null>(null);
   const [toast, setToast] = useState("");
+
+  useEffect(() => { fetch("/api/public/academy").then((response) => response.json()).then((data) => { if (data.academy?.name) setAcademyBrand({ name: data.academy.name, logoUrl: data.academy.logoUrl || "" }); }).catch(() => undefined); }, []);
 
   function showToast(message: string) {
     setToast(message);
@@ -90,8 +93,8 @@ export default function StudentPortal() {
           </div>
         ) : (
           <div className="brand">
-            <div className="brand-mark"><Activity size={20} strokeWidth={2.6} /></div>
-            <span>Spin<span className="brand-light">Academy</span></span>
+            <div className="brand-mark">{academyBrand.logoUrl ? <img src={academyBrand.logoUrl} alt="" /> : <Activity size={20} strokeWidth={2.6} />}</div>
+            <span>{academyBrand.name}</span>
           </div>
         )}
         <button className="icon-button notification-button" aria-label="Notificaciones" onClick={() => showToast("No tienes nuevas notificaciones")}>
@@ -147,8 +150,8 @@ export default function StudentPortal() {
         )}
 
         {tab === "Mis Clases" && <ClassesView onToast={showToast} attendance={attendance} onMarkAttendance={markAttendance} />}
-        {tab === "Rankings" && <RankingsView onToast={showToast} />}
-        {tab === "Mi Perfil" && <ProfileView onToast={showToast} onPaymentHistory={() => setPaymentView("history")} />}
+        {tab === "Rankings" && <RankingsView onToast={showToast} academyName={academyBrand.name} />}
+        {tab === "Mi Perfil" && <ProfileView onToast={showToast} onPaymentHistory={() => setPaymentView("history")} academyName={academyBrand.name} />}
       </section>
 
       <nav className="bottom-nav" aria-label="Navegación principal">
@@ -185,7 +188,7 @@ function ClassesView({ onToast, attendance, onMarkAttendance }: { onToast: (mess
   </>;
 }
 
-function RankingsView({ onToast }: { onToast: (message: string) => void }) {
+function RankingsView({ onToast, academyName }: { onToast: (message: string) => void; academyName: string }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [paidIds, setPaidIds] = useState<string[]>(["weekly-14"]);
   const [registeredIds, setRegisteredIds] = useState<string[]>(["weekly-14"]);
@@ -206,7 +209,7 @@ function RankingsView({ onToast }: { onToast: (message: string) => void }) {
   return <>
     <div className="page-title"><h1>Torneos y Rankings</h1><p>Explora las competencias activas de tu academia.</p></div>
     {!event ? <>
-      <article className="card player-ranking-card"><div className="player-overview"><div className="avatar avatar-player">MG</div><div><h2>Mateo Gonzales</h2><p>Categoría Federada · Afiliado 2024</p></div><div className="medal-icon"><Medal size={20} /></div></div><div className="ranking-summary"><div className="summary-symbol"><Activity size={18} /></div><div><span>SPINACADEMY</span><strong>Ranking Institucional</strong></div><b>#14</b><small>de 120</small></div></article>
+      <article className="card player-ranking-card"><div className="player-overview"><div className="avatar avatar-player">MG</div><div><h2>Mateo Gonzales</h2><p>Categoría Federada · Afiliado 2024</p></div><div className="medal-icon"><Medal size={20} /></div></div><div className="ranking-summary"><div className="summary-symbol"><Activity size={18} /></div><div><span>{academyName.toLocaleUpperCase("es-PE")}</span><strong>Ranking Institucional</strong></div><b>#14</b><small>de 120</small></div></article>
       <section className="section-block ranking-event-block"><div className="section-heading"><h2>Rankings activos</h2><span className="muted">{events.length} competencias</span></div>
         <div className="active-ranking-list">{events.map((item) => <article className="card active-ranking-card" key={item.id}><div className="active-ranking-icon"><Trophy size={20} /></div><div className="active-ranking-copy"><span className="registered-label"><i />{item.state}</span><h3>{item.title}</h3><p><CalendarDays size={14} />{item.date}</p><p><MapPin size={14} />{item.venue}</p><div className="active-ranking-meta"><span>{item.enrolled} / {item.capacity} inscritos</span><strong>Alumno {item.memberPrice}</strong></div></div><button className="button button-primary ranking-detail-link" onClick={() => setSelected(item.id)}>Ver detalles <ChevronRight size={16} /></button></article>)}</div>
       </section>
@@ -223,10 +226,10 @@ function RankingsView({ onToast }: { onToast: (message: string) => void }) {
   </>;
 }
 
-function ProfileView({ onToast, onPaymentHistory }: { onToast: (message: string) => void; onPaymentHistory: () => void }) {
+function ProfileView({ onToast, onPaymentHistory, academyName }: { onToast: (message: string) => void; onPaymentHistory: () => void; academyName: string }) {
   return <>
     <div className="page-title"><h1>Mi Perfil</h1><p>Administra tu cuenta y tus preferencias.</p></div>
-    <article className="card profile-card"><div className="profile-avatar">MG</div><div className="profile-main"><h2>Mateo Gonzales</h2><p>Estudiante · SpinAcademy</p><span className="status-badge">Membresía activa</span></div><button className="icon-button" aria-label="Editar perfil" onClick={() => onToast("Edición de perfil próximamente")}><Settings size={19} /></button></article>
+    <article className="card profile-card"><div className="profile-avatar">MG</div><div className="profile-main"><h2>Mateo Gonzales</h2><p>Estudiante · {academyName}</p><span className="status-badge">Membresía activa</span></div><button className="icon-button" aria-label="Editar perfil" onClick={() => onToast("Edición de perfil próximamente")}><Settings size={19} /></button></article>
     <section className="section-block profile-section"><h2>Mi cuenta</h2><div className="card settings-card">
       <button className="settings-row" onClick={() => onToast("Mostrando información personal")}><UserRound size={19} /><span><strong>Información personal</strong><small>Nombre, correo y teléfono</small></span><ChevronRight size={18} /></button>
       <button className="settings-row" onClick={onPaymentHistory}><CreditCard size={19} /><span><strong>Plan y pagos</strong><small>Plan Competitivo Mensual · Ver historial</small></span><ChevronRight size={18} /></button>

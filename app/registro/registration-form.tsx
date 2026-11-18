@@ -2,7 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { Activity, ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, UserRound } from "lucide-react";
+import AcademyBrand from "@/components/academy-brand";
 
 export default function RegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -29,7 +30,7 @@ export default function RegistrationForm() {
   return <main className="auth-page">
     <section className="auth-card">
       <Link href="/login" className="back-link"><ArrowLeft size={16} /> Volver al inicio de sesión</Link>
-      <Link href="/" className="brand auth-brand"><span className="brand-mark"><Activity size={20} /></span><span>Spin<span className="brand-light">Academy</span></span></Link>
+      <Link href="/" className="brand auth-brand"><AcademyBrand /></Link>
       <div className="login-heading"><span className="login-eyebrow">NUEVA CUENTA</span><h2>Empieza a entrenar.</h2><p>Crea tu cuenta de estudiante para entrar a tu academia.</p></div>
       <form className="login-form" onSubmit={handleSubmit}>
         <label htmlFor="fullName">Nombre completo</label>
@@ -39,9 +40,9 @@ export default function RegistrationForm() {
         <label htmlFor="registerEmail">Correo electrónico</label>
         <div className="input-wrap"><Mail size={18} /><input id="registerEmail" name="email" type="email" placeholder="nombre@correo.com" autoComplete="email" required /></div>
         <label htmlFor="registerPassword">Contraseña</label>
-        <div className="input-wrap"><LockKeyhole size={18} /><input id="registerPassword" name="password" type={showPassword ? "text" : "password"} placeholder="Mínimo 8 caracteres" autoComplete="new-password" minLength={8} required /><button className="reveal-button" type="button" aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
+        <div className="input-wrap"><LockKeyhole size={18} /><input id="registerPassword" name="password" type={showPassword ? "text" : "password"} placeholder="Mínimo 10 caracteres" autoComplete="new-password" minLength={10} required /><button className="reveal-button" type="button" aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
         <label htmlFor="confirmPassword">Confirma tu contraseña</label>
-        <div className="input-wrap"><LockKeyhole size={18} /><input id="confirmPassword" name="confirmPassword" type={showPassword ? "text" : "password"} placeholder="Repite tu contraseña" autoComplete="new-password" minLength={8} required /></div>
+        <div className="input-wrap"><LockKeyhole size={18} /><input id="confirmPassword" name="confirmPassword" type={showPassword ? "text" : "password"} placeholder="Repite tu contraseña" autoComplete="new-password" minLength={10} required /></div>
         <button className="button button-primary login-submit" type="submit" disabled={busy}>{busy ? "Creando cuenta…" : "Crear cuenta"} {!busy && <ArrowRight size={17} />}</button>
         {message && <p className="login-message" role="status">{message}</p>}
       </form>

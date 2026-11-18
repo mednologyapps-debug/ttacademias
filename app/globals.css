@@ -529,6 +529,46 @@ button:focus-visible { outline: 3px solid rgba(37, 99, 235, .28); outline-offset
 .attendance-locked { display:inline-flex;align-items:center;gap:5px;padding:7px 9px;border:1px solid #e7edf4;border-radius:9px;background:#f7f9fc;color:#75849a;font-size:9px;font-weight:650;white-space:nowrap; }
 @media(max-width:700px) { .course-detail-summary { grid-template-columns:1fr; }.about-v2-cta { width:100%;justify-content:center; }.landing-about-v2 { padding-top:60px;padding-bottom:60px; } }
 
+/* Landing typography and ranking event card refinements */
+.academy-landing-v2 { font-family:Inter,"Inter Variable",system-ui,sans-serif; }
+.landing-nav-v2 nav a { font-size:13px; }
+.landing-nav-v2 nav .landing-nav-cta { min-height:46px;padding-inline:19px;font-size:12px; }
+.hero-v2-copy>p { font-size:17px;line-height:1.75; }
+.hero-v2-cta { min-height:54px;padding-inline:23px;font-size:14px;background:var(--brand);color:#fff; }
+.hero-v2-secondary { font-size:13px; }
+.hero-v2-trust { font-size:12px; }.hero-v2-trust b { font-size:12px; }
+.about-v2-copy h2,.section-v2-heading h2 { font-size:clamp(40px,4.3vw,60px); }
+.about-v2-copy>p,.section-v2-heading>p { font-size:15px;line-height:1.8; }
+.about-v2-points span { font-size:13px; }.about-v2-cta { min-height:52px;padding-inline:22px;font-size:13px; }
+.benefit-card-v2 { min-height:290px;padding:29px; }.benefit-card-v2>small { font-size:10px; }.benefit-card-v2 h3 { font-size:20px; }.benefit-card-v2 p { font-size:14px;line-height:1.75; }
+.team-card-v2 { grid-template-columns:135px minmax(0,1fr);gap:19px;padding:15px; }.team-photo-v2 { min-height:150px; }.team-photo-v2 h3,.team-card-v2 h3 { font-size:16px; }.team-card-v2 p { font-size:13px; }.team-level-v2 { font-size:10px; }
+.landing-ranking-v2 { grid-template-columns:minmax(0,1fr) minmax(360px,.8fr);gap:58px;padding:54px 58px;background:linear-gradient(125deg,#072747 0%,#0b3c70 100%); }
+.ranking-v2-copy h2 { font-size:clamp(42px,4.1vw,58px); }.ranking-v2-copy>p { max-width:460px;font-size:15px;line-height:1.75; }
+.ranking-v2-link { color:#dcecff;font-size:13px;font-weight:700;text-decoration:underline;text-decoration-color:#ffffff66;text-underline-offset:4px; }
+.ranking-v2-card { gap:0;padding:25px;border:1px solid #e3eaf3;border-radius:17px;background:#fff;color:#1d2b40;box-shadow:0 20px 48px #061b3338;backdrop-filter:none; }
+.ranking-v2-card>.ranking-facts-v2 { display:grid;gap:12px;margin:0;padding:0;border:0; }
+.ranking-v2-card>.ranking-prices-v2 { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:19px;padding:16px 0 0;border:0;border-top:1px solid #e9edf2; }
+.ranking-v2-card>.ranking-card-footer-v2 { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:17px;padding:0;border:0; }
+.ranking-v2-card>.ranking-prices-v2>div { display:grid;gap:5px;margin:0;padding:11px;border:1px solid #e8edf4;border-radius:11px;background:#f8faff; }
+.ranking-v2-card>.ranking-prices-v2>div>small { color:#7b889a;font-size:10px; }.ranking-v2-card>.ranking-prices-v2>div>strong { color:#1e2e45;font-size:16px; }
+.ranking-status-v2 { width:max-content;margin-bottom:14px;padding:7px 11px;border:1px solid #d8e7ff;border-radius:999px;background:#edf4ff;color:#0b50c8;font-size:11px;font-weight:750; }
+.ranking-v2-card h3 { margin:0 0 17px;color:#1d2b40;font-size:23px;line-height:1.22;letter-spacing:-.04em; }
+.ranking-facts-v2 { display:grid;gap:12px; }.ranking-facts-v2 p { display:flex;align-items:center;gap:11px;color:#0b50c8;font-size:13px; }.ranking-facts-v2 p>span { display:grid;gap:3px; }.ranking-facts-v2 p small { color:#8995a5;font-size:10px;font-weight:600; }.ranking-facts-v2 p strong { color:#35445a;font-size:13px;font-weight:650; }
+.ranking-prices-v2 { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:19px;padding-top:16px;border-top:1px solid #e9edf2; }.ranking-prices-v2>div { display:grid;gap:5px;padding:11px;border:1px solid #e8edf4;border-radius:11px;background:#f8faff; }.ranking-prices-v2 small { color:#7b889a;font-size:10px; }.ranking-prices-v2 strong { color:#1e2e45;font-size:16px; }
+.ranking-card-footer-v2 { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:17px; }.ranking-card-footer-v2>span { color:#78869a;font-size:10px; }.ranking-v2-primary { min-height:47px;padding-inline:16px;border:0;border-radius:10px;background:#0b50c8;color:#fff;font-size:12px;font-weight:750;box-shadow:0 6px 15px #0b50c826;transition:transform .18s,background .18s; }.ranking-v2-primary:hover { transform:translateY(-1px);background:#0845af; }
+.ranking-v2-empty { padding:28px;border:1px solid #e2eaf4;border-radius:16px;background:#fff;color:#728198;box-shadow:0 12px 30px #061b3320; }.ranking-v2-empty svg { color:#0b50c8; }.ranking-v2-empty strong { color:#26364c;font-size:17px; }.ranking-v2-empty span { font-size:12px;line-height:1.65; }
+.landing-footer-v2 { font-size:12px; }.landing-footer-v2 .landing-brand-v2 { font-size:15px; }.landing-footer-v2>a:last-child { font-size:12px; }
+@media(max-width:1000px) { .landing-ranking-v2 { grid-template-columns:1fr minmax(330px,.85fr);gap:28px;padding:40px; }.team-card-v2 { grid-template-columns:110px minmax(0,1fr); }.team-photo-v2 { min-height:128px; } }
+@media(max-width:680px) {
+  .landing-nav-v2 nav .landing-nav-cta { min-height:40px;padding-inline:15px;font-size:11px; }
+  .hero-v2-copy>p { font-size:14px; }.hero-v2-cta { min-height:49px;font-size:12px; }.hero-v2-secondary { font-size:11px; }.hero-v2-trust { font-size:10px; }.hero-v2-trust b { font-size:10px; }
+  .about-v2-copy h2,.section-v2-heading h2 { font-size:clamp(36px,10vw,45px); }.about-v2-copy>p,.section-v2-heading>p { font-size:13px; }.about-v2-points span { font-size:12px; }.about-v2-cta { min-height:48px;font-size:12px; }
+  .benefit-card-v2 { padding:20px; }.benefit-card-v2>small { font-size:9px; }.benefit-card-v2 h3 { font-size:18px; }.benefit-card-v2 p { font-size:12px; }
+  .team-card-v2 { grid-template-columns:98px minmax(0,1fr);gap:13px;padding:11px; }.team-photo-v2 { min-height:112px; }.team-card-v2 h3 { font-size:14px; }.team-card-v2 p { font-size:11px; }.team-level-v2 { font-size:9px; }
+  .landing-ranking-v2 { grid-template-columns:1fr;gap:22px;padding:25px 18px; }.ranking-v2-copy h2 { font-size:39px; }.ranking-v2-copy>p { font-size:13px; }.ranking-v2-card { padding:18px; }.ranking-v2-card h3 { font-size:20px; }.ranking-facts-v2 p strong { font-size:12px; }.ranking-prices-v2 strong { font-size:15px; }.ranking-v2-card>.ranking-card-footer-v2 { align-items:flex-start;flex-direction:column; }.ranking-card-footer-v2 .ranking-v2-primary { width:100%;justify-content:center; }.ranking-v2-empty { padding:20px; }
+  .landing-footer-v2 { font-size:10px; }.landing-footer-v2 .landing-brand-v2 { font-size:13px; }.landing-footer-v2>a:last-child { font-size:11px; }
+}
+
 /* Active ranking discovery and enrollment flow */
 .active-ranking-list { display: grid; gap: 12px; }
 .active-ranking-card { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 17px; transition: transform .2s ease, box-shadow .2s ease; }

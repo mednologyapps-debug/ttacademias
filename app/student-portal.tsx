@@ -19,6 +19,7 @@ import {
   LogOut,
   MapPin,
   Medal,
+  Menu,
   MoreVertical,
   Settings,
   ShieldCheck,
@@ -62,6 +63,7 @@ export default function StudentPortal() {
   const [registered, setRegistered] = useState(true);
   const [paymentView, setPaymentView] = useState<"history" | "renew" | null>(null);
   const [toast, setToast] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => { fetch("/api/public/academy").then((response) => response.json()).then((data) => { if (data.academy?.name) setAcademyBrand({ name: data.academy.name, logoUrl: data.academy.logoUrl || "" }); }).catch(() => undefined); }, []);
 
@@ -72,6 +74,7 @@ export default function StudentPortal() {
 
   function navigate(next: Tab) {
     setTab(next);
+    setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -83,6 +86,7 @@ export default function StudentPortal() {
   return (
     <main className="app-shell">
       <header className="topbar">
+        <button className="desktop-menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menú"><Menu size={20}/></button>
         {tab === "Inicio" ? (
           <div className="welcome-block">
             <div className="avatar avatar-initial">M</div>
@@ -102,6 +106,7 @@ export default function StudentPortal() {
           <span className="notification-dot" />
         </button>
       </header>
+      {menuOpen && <><button className="desktop-menu-scrim" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)}/><aside className="desktop-menu-panel"><div className="desktop-menu-title"><strong>{academyBrand.name}</strong><button onClick={() => setMenuOpen(false)} aria-label="Cerrar menú"><X size={18}/></button></div>{tabs.map(({label,icon:Icon})=><button key={label} className={tab===label?"selected":""} onClick={()=>navigate(label)}><Icon size={18}/>{label}</button>)}</aside></>}
 
       <section className="content" key={tab}>
         {tab === "Inicio" && (
@@ -121,8 +126,7 @@ export default function StudentPortal() {
                 <p className="subtle">Fase de técnica y lectura de efecto</p>
                 <div className="coach-box"><span className="label">PROFESOR</span><div className="coach-line"><div className="avatar avatar-coach">CM</div><strong>C. Mendoza</strong></div></div>
                 <div className="attendance-actions">
-                  <button className="button button-success" onClick={() => markAttendance("yes")}><CheckCircle2 size={16} />{attendance === "yes" ? "Asistiré" : "Sí, asistiré"}</button>
-                  <button className={`button ${attendance === "no" ? "button-decline-selected" : "button-soft"}`} onClick={() => markAttendance("no")}>{attendance === "no" ? "No asistiré ✓" : "No asistiré"}</button>
+                  {attendance === "yes" ? <button className="attendance-confirmed" disabled><CheckCircle2 size={17}/> Asistencia confirmada</button> : attendance === "no" ? <button className="attendance-declined" disabled>No asistiré</button> : <><button className="button button-success" onClick={() => markAttendance("yes")}><CheckCircle2 size={16} />Sí, asistiré</button><button className="button button-soft" onClick={() => markAttendance("no")}>No asistiré</button></>}
                 </div>
               </article>
             </section>
@@ -180,7 +184,7 @@ function ClassesView({ onToast, attendance, onMarkAttendance }: { onToast: (mess
       <div className="today-class-time"><Clock3 size={19} /><strong>6:00 PM - 7:30 PM</strong></div><p className="subtle">Duración: 90 minutos</p>
       <div className="level-strip">Intermedio: Control de Saques &amp; Topspin</div>
       <div className="teacher-row"><div className="avatar avatar-coach large">CM</div><div className="teacher-info"><strong>Prof. Carlos Mendoza</strong><span><Star size={15} fill="currentColor" /> 4.9 <i>(128 clases)</i></span></div><span className={`attendance-status ${attendance === "no" ? "declined" : ""}`}>{attendance === "yes" ? "Asistiré" : attendance === "no" ? "No asistiré" : "Sin confirmar"}</span></div>
-      <div className="attendance-actions class-attendance-actions"><button className="button button-success" onClick={() => onMarkAttendance("yes")}><CheckCircle2 size={16} />Sí, asistiré</button><button className={`button ${attendance === "no" ? "button-decline-selected" : "button-soft"}`} onClick={() => onMarkAttendance("no")}>No asistiré</button></div>
+      <div className="attendance-actions class-attendance-actions">{attendance === "yes" ? <button className="attendance-confirmed" disabled><CheckCircle2 size={17}/> Asistencia confirmada</button> : attendance === "no" ? <button className="attendance-declined" disabled>No asistiré</button> : <><button className="button button-success" onClick={() => onMarkAttendance("yes")}><CheckCircle2 size={16} />Sí, asistiré</button><button className="button button-soft" onClick={() => onMarkAttendance("no")}>No asistiré</button></>}</div>
     </article>
     <section className="section-block upcoming-block"><div className="section-heading"><h2>Próximas Sesiones</h2><button className="text-link" onClick={() => onToast("Mostrando todas tus sesiones")}>Ver más completo</button></div>
       <div className="session-list">{sessions.map((session) => <article className="card session-card" key={session.title}><div className="date-tile"><span>{session.day}</span><strong>{session.date}</strong></div><div className="session-info"><strong>{session.title}</strong><p>{session.time} • {session.coach}</p></div><div className={`avatar avatar-small ${session.tone}`}>{session.initials}</div><button className="more-button" aria-label={`Más opciones para ${session.title}`} onClick={() => onToast("Opciones de sesión") }><MoreVertical size={20} /></button></article>)}</div>

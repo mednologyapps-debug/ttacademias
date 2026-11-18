@@ -1,35 +1,33 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Activity, ArrowRight, CalendarDays, CircleDot, GraduationCap, Trophy } from "lucide-react";
+import AcademyLanding from "./academy-landing";
 import { getCurrentUser } from "@/lib/auth";
 import { getAcademySlug } from "@/lib/tenant";
 import { getDb } from "@/lib/db";
 import type { RowDataPacket } from "mysql2";
-
-function TableTennisVisual() {
-  return <div className="table-tennis-art" aria-hidden="true"><div className="art-light art-light-one"/><div className="art-light art-light-two"/><div className="art-speed speed-one"/><div className="art-speed speed-two"/><svg viewBox="0 0 640 560" role="presentation"><defs><linearGradient id="court" x1="0" x2="1"><stop stopColor="#19769a"/><stop offset="1" stopColor="#0a496a"/></linearGradient><linearGradient id="shirt" x1="0" x2="1" y1="0" y2="1"><stop stopColor="#f4fbff"/><stop offset="1" stopColor="#8bb8da"/></linearGradient></defs><ellipse cx="370" cy="482" rx="260" ry="27" fill="#000a13" opacity=".6"/><path d="M114 402 532 369 629 408 203 452Z" fill="url(#court)" stroke="#dcecf4" strokeOpacity=".75" strokeWidth="2"/><path d="m204 452-18 71m423-115 20 69M114 402l-14 47m432-80 14 39" fill="none" stroke="#b7d6e5" strokeWidth="8" strokeLinecap="round"/><path d="m337 385 7 50" stroke="#e4f2f8" strokeWidth="3"/><path d="m340 386 96-8 25 9-97 10Z" fill="#d8e6ed" opacity=".75"/><circle cx="367" cy="118" r="34" fill="#e8c6a7"/><path d="M333 114c8-35 53-44 75-17l9 24-20-10-14 7-26-7-23 16Z" fill="#071a2b"/><path d="M335 166c-28 20-47 51-54 86l-13 65 58 39 71-49 25-72c-14-39-48-66-87-69Z" fill="url(#shirt)"/><path d="m286 204-57 54-61 57m215-106 59-46 61-37" fill="none" stroke="#e4c2a4" strokeWidth="23" strokeLinecap="round"/><path d="m230 259-20-22m292-64 25 18" fill="none" stroke="#111e2b" strokeWidth="19" strokeLinecap="round"/><path d="m168 313-19-24m313-116 19-28" fill="none" stroke="#e5c4a8" strokeWidth="12" strokeLinecap="round"/><path d="M149 289c-19-25-10-43 8-46 21-4 31 22 18 47l-10 15Zm332-118c13-27 34-30 43-14 11 19-9 37-36 34l-15-3Z" fill="#ff6e65"/><path d="m306 338-67 64-70 35m211-132 61 58 70 9" fill="none" stroke="#d9b99c" strokeWidth="27" strokeLinecap="round"/><path d="m239 402-12 30m273-7 8 27" fill="none" stroke="#111e2b" strokeWidth="23" strokeLinecap="round"/><path d="m169 437-38 7m377-19 39 17" fill="none" stroke="#e8c8aa" strokeWidth="14" strokeLinecap="round"/><path d="M131 444c-21 1-36 12-31 25 5 14 31 14 56 1l22-13Zm417-2c21 7 32 22 23 33-9 13-34 5-54-14l-18-20Z" fill="#edf7fc"/><circle cx="570" cy="231" r="8" fill="#f6fbff"/><circle cx="570" cy="231" r="20" fill="#b6e8ff" opacity=".16"/></svg><div className="art-caption"><span><CircleDot size={15}/> PUNTO A PUNTO</span><strong>Tu próximo nivel<br/>empieza aquí.</strong></div><div className="art-score"><b>11</b><i/><b>09</b><small>GAME POINT</small></div></div>;
-}
 
 export default async function PortalHome() {
   try {
     const user = await getCurrentUser();
     if (user) redirect(user.role === "student" ? "/alumno" : user.role === "teacher" ? "/profesores" : user.role === "academy_admin" ? "/admin" : "/global-admin");
   } catch (error) { if (error && typeof error === "object" && "digest" in error) throw error; }
-  let academy: { name: string; slug: string; logoUrl: string | null } | null = null;
+  let academy: { id: string; name: string; slug: string; logoUrl: string | null } | null = null;
+  let ranking: { id: string; title: string; startsAt: string; venue: string; studentPrice: string; publicPrice: string; capacity: number } | null = null;
+  let teachers: string[] = [];
   try {
     const slug = await getAcademySlug();
     if (slug) {
-      const [rows] = await getDb().query<({ name: string; slug: string; logoUrl: string | null } & RowDataPacket)[]>("SELECT name,slug,logo_url AS logoUrl FROM academies WHERE slug=? AND status='active' LIMIT 1", [slug]);
+      const db = getDb();
+      const [rows] = await db.query<({ id: string; name: string; slug: string; logoUrl: string | null } & RowDataPacket)[]>("SELECT id,name,slug,logo_url AS logoUrl FROM academies WHERE slug=? AND status='active' LIMIT 1", [slug]);
       academy = rows[0] || null;
+      if (academy) {
+        const [upcoming] = await db.query<({ id: string; title: string; startsAt: string; venue: string; studentPrice: string; publicPrice: string; capacity: number } & RowDataPacket)[]>("SELECT id,title,starts_at AS startsAt,venue,student_price AS studentPrice,public_price AS publicPrice,capacity FROM rankings WHERE academy_id=? AND status='published' AND starts_at>=NOW() ORDER BY starts_at LIMIT 1", [academy.id]);
+        ranking = upcoming[0] || null;
+        const [staff] = await db.query<({ fullName: string } & RowDataPacket)[]>("SELECT full_name AS fullName FROM users WHERE academy_id=? AND role='teacher' AND status='active' ORDER BY full_name LIMIT 3", [academy.id]);
+        teachers = staff.map((row) => row.fullName);
+      }
     }
-  } catch { /* Use the local academy preview without a database. */ }
-  if (!academy && process.env.NODE_ENV !== "production") academy = { name: "Lawntennis Club", slug: "lawntennis", logoUrl: null };
-  const academyName = academy?.name || "TT Academias";
-  return <main className="academy-landing">
-    <header className="academy-landing-nav"><Link href="/" className="academy-landing-brand"><span>{academy?.logoUrl ? <img src={academy.logoUrl} alt=""/> : <Activity size={21}/>}</span>{academyName}</Link><nav><a href="#inicio">Inicio</a><a href="#academia">La academia</a><Link href="/rankings">Rankings</Link><Link href="/login">Ingresar</Link><Link href="/registro" className="academy-nav-cta">Asociarme <ArrowRight size={15}/></Link></nav></header>
-    <section className="academy-hero" id="inicio"><div className="academy-hero-glow"/><div className="academy-hero-inner"><div className="academy-hero-copy"><span className="academy-availability"><i/> Academia abierta para nuevos alumnos</span><h1>Entrena con<br/>intención. <em>Juega</em><br/><em>con confianza.</em></h1><p>Tenis de mesa para cada nivel. Aprende técnica, mejora tu juego y encuentra tu próximo reto en la mesa.</p><div className="academy-hero-actions"><Link href="/registro" className="academy-hero-primary">Únete a la academia <ArrowRight size={17}/></Link><Link href="/rankings" className="academy-hero-link">Explorar rankings</Link></div><div className="academy-hero-proof"><span className="academy-proof-stars">★★★★★</span><strong>Entrenamiento para todos los niveles</strong><span>· Básico a avanzado</span></div></div><TableTennisVisual/></div><div className="academy-hero-bottom"><span>Desliza para descubrir <ArrowRight size={14}/></span><span><b>01</b> / 03</span></div></section>
-    <section className="academy-intro" id="academia"><div className="academy-intro-heading"><span className="academy-section-tag">MÁS QUE ENTRENAR</span><h2>Todo tu juego,<br/><em>en un solo lugar.</em></h2><p>Un espacio para aprender, compartir y competir. Organiza tu entrenamiento y sigue conectado con tu academia.</p></div><div className="academy-feature-grid"><article className="academy-feature-card"><span className="academy-feature-icon"><GraduationCap size={21}/></span><small>01 · APRENDE</small><h3>Entrena a tu ritmo</h3><p>Clases y niveles pensados para acompañar tu evolución desde los primeros golpes.</p><div className="level-pills"><span>Básico</span><span>Intermedio</span><span>Avanzado</span></div></article><article className="academy-feature-card"><span className="academy-feature-icon"><CalendarDays size={21}/></span><small>02 · ORGANÍZATE</small><h3>Tu agenda, siempre a mano</h3><p>Consulta tus próximas sesiones, profesores y avisos de la academia desde el celular.</p><div className="feature-schedule"><i/><span>Tu próxima clase</span><b>Entrenamiento en mesa</b><small>Agenda de la academia</small></div></article><article className="academy-feature-card"><span className="academy-feature-icon"><Trophy size={21}/></span><small>03 · COMPITE</small><h3>El siguiente punto cuenta</h3><p>Explora rankings, revisa los detalles e inscríbete a los próximos encuentros.</p><Link href="/rankings" className="feature-inline-link">Ver rankings activos <ArrowRight size={15}/></Link></article></div></section>
-    <section className="academy-join"><div><span className="academy-section-tag">NOS VEMOS EN LA MESA</span><h2>¿Listo para empezar?</h2><p>Asóciate a {academyName} y lleva tus entrenamientos contigo.</p></div><Link href="/registro" className="academy-hero-primary">Crear mi cuenta <ArrowRight size={17}/></Link></section>
-    <footer className="academy-landing-footer"><span>{academyName} · Tenis de mesa para todos los niveles.</span><Link href="/login">Acceso para alumnos y profesores</Link></footer>
-  </main>;
+  } catch { /* Local preview can run before database configuration. */ }
+  if (!academy && process.env.NODE_ENV !== "production") academy = { id: "preview", name: "Lawntennis Club", slug: "lawntennis", logoUrl: null };
+  if (!ranking && academy?.id === "preview") ranking = { id: "demo-ranking", title: "Ranking Relámpago de la Academia", startsAt: "2026-11-28T16:00:00-05:00", venue: "Sede Miraflores · Lima", studentPrice: "25.00", publicPrice: "40.00", capacity: 20 };
+  return <AcademyLanding academyName={academy?.name || "TT Academias"} logoUrl={academy?.logoUrl || null} ranking={ranking} teachers={teachers}/>;
 }

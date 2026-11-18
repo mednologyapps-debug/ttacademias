@@ -12,7 +12,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Abre `http://localhost:3000`. Para comprobar la compilación optimizada: `npm run build` y luego `npm run start`.
+Abre `http://localhost:3000`. En modo local puedes entrar con las cuentas de demostración `testadmin` / `test` y `testuser` / `test`. Son cuentas temporales de interfaz y solo funcionan con `npm run dev`; el servidor de producción las rechaza. Para comprobar la compilación optimizada: `npm run build` y luego `npm run start`.
 
 ## Base de datos y primer acceso
 

@@ -15,7 +15,7 @@ export default function LoginForm() {
     setBusy(true); setMessage("");
     const form = new FormData(event.currentTarget);
     try {
-      const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: form.get("email"), password: form.get("password"), remember }) });
+      const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: form.get("username"), password: form.get("password"), remember }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "No se pudo iniciar sesión.");
       window.location.assign(result.redirect || "/");
@@ -40,16 +40,18 @@ export default function LoginForm() {
         <div className="login-heading"><h2>Qué bueno verte.</h2><p>Ingresa a tu cuenta para continuar.</p></div>
 
         <form className="login-form" onSubmit={handleSubmit}>
-          <label htmlFor="email">Correo electrónico</label>
-          <div className="input-wrap"><Mail size={18} /><input id="email" name="email" type="email" placeholder="nombre@correo.com" autoComplete="email" required /></div>
+          <label htmlFor="username">Usuario o correo electrónico</label>
+          <div className="input-wrap"><Mail size={18} /><input id="username" name="username" type="text" placeholder="Usuario o correo" autoComplete="username" required /></div>
 
           <div className="password-label"><label htmlFor="password">Contraseña</label><Link href="/recuperar-clave" className="forgot-link">¿Olvidaste tu contraseña?</Link></div>
-          <div className="input-wrap"><LockKeyhole size={18} /><input id="password" name="password" type={showPassword ? "text" : "password"} placeholder="Ingresa tu contraseña" autoComplete="current-password" required minLength={6} /><button className="reveal-button" type="button" aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
+          <div className="input-wrap"><LockKeyhole size={18} /><input id="password" name="password" type={showPassword ? "text" : "password"} placeholder="Ingresa tu contraseña" autoComplete="current-password" required minLength={4} /><button className="reveal-button" type="button" aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
 
           <label className="remember-option"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span className="custom-check" />Recordarme en este dispositivo</label>
           <button className="button button-primary login-submit" type="submit" disabled={busy}>{busy ? "Ingresando…" : "Ingresar a mi cuenta"} {!busy && <ArrowRight size={17} />}</button>
           {message && <p className="login-message" role="status">{message}</p>}
         </form>
+
+        {process.env.NODE_ENV !== "production" && <div className="local-demo-accounts"><strong>Cuentas de prueba local</strong><span>Admin: <b>testadmin</b> / <b>test</b></span><span>Estudiante: <b>testuser</b> / <b>test</b></span></div>}
 
         <div className="login-divider"><span /> <small>O CONTINÚA CON</small> <span /></div>
         <button className="google-button" type="button" onClick={() => setMessage("El acceso con Google requiere configurar las credenciales OAuth de producción.")}><span className="google-g">G</span>Continuar con Google</button>

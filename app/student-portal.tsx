@@ -118,7 +118,7 @@ export default function StudentPortal() {
               <button className="dismiss-button" onClick={() => setNoticeVisible(false)} aria-label="Cerrar aviso"><span>Entendido</span><X size={15} /></button>
             </section>}
 
-            <section className="section-block">
+            <section className="section-block class-section">
               <div className="section-heading"><h2>Mi Clase de Hoy</h2><span className="muted">Miércoles, 18 Nov</span></div>
               <article className="card class-card">
                 <div className="class-meta"><span className="time-pill"><span className="dot" />Hoy · 6:00 PM - 7:30 PM</span><span className="duration"><Clock3 size={15} />90 min</span></div>
@@ -131,7 +131,7 @@ export default function StudentPortal() {
               </article>
             </section>
 
-            <section className="section-block">
+            <section className="section-block membership-section">
               <div className="section-heading"><h2>Membresía &amp; Facturación</h2><span className="status-badge">Activa</span></div>
               <article className="card membership-card">
                 <div className="membership-title"><div><h3>Plan Competitivo Mensual</h3><p className="subtle">Acceso total a sedes y mesas de práctica</p></div><strong className="price">S/. 280.00 <small>/ mes</small></strong></div>
@@ -141,7 +141,7 @@ export default function StudentPortal() {
               </article>
             </section>
 
-            <section className="section-block last-section">
+            <section className="section-block last-section ranking-section">
               <div className="section-heading"><h2>Próximo Torneo</h2></div>
               <article className="card tournament-card compact-tournament">
                 <div className="tournament-top"><div><span className="eyebrow">RANKING SEMANAL #14</span><h3>Torneo Relámpago Apertura</h3></div><div className="trophy-badge"><Trophy size={20} /></div></div>

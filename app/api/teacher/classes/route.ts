@@ -29,6 +29,7 @@ export async function GET() {
     }
     const hydrated = classes.map((item) => ({ ...item, startsAt: new Date(item.startsAt).toISOString(), students: attendance.filter((a) => a.class_id === item.id).map((a) => ({ id: a.id, name: a.name, response: a.response })) }));
     const now = Date.now();
-    return NextResponse.json({ classes: hydrated.filter((item) => item.status !== "completed" && new Date(item.startsAt).getTime() >= now), history: hydrated.filter((item) => item.status === "completed" || new Date(item.startsAt).getTime() < now) });
+    const isFinished = (item: typeof hydrated[number]) => new Date(item.startsAt).getTime() + 120 * 60 * 1000 < now;
+    return NextResponse.json({ classes: hydrated.filter((item) => item.status !== "completed" && !isFinished(item)), history: hydrated.filter((item) => item.status === "completed" || isFinished(item)) });
   } catch { return NextResponse.json({ error: "No se pudo cargar la agenda del profesor." }, { status: 503 }); }
 }

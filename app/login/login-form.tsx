@@ -52,7 +52,7 @@ export default function LoginForm() {
           {message && <p className="login-message" role="status">{message}</p>}
         </form>
 
-        {process.env.NODE_ENV !== "production" && <div className="local-demo-accounts"><strong>Cuentas de prueba local</strong><span>Admin: <b>testadmin</b> / <b>test</b></span><span>Estudiante: <b>testuser</b> / <b>test</b></span></div>}
+        {process.env.NODE_ENV !== "production" && <div className="local-demo-accounts"><strong>Cuentas de prueba local</strong><span>Admin: <b>testadmin</b> / <b>test</b></span><span>Profesor: <b>testteacher</b> / <b>test</b></span><span>Estudiante: <b>testuser</b> / <b>test</b></span></div>}
 
         <div className="login-divider"><span /> <small>O CONTINÚA CON</small> <span /></div>
         <button className="google-button" type="button" onClick={() => setMessage("El acceso con Google requiere configurar las credenciales OAuth de producción.")}><span className="google-g">G</span>Continuar con Google</button>

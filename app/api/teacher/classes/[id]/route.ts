@@ -4,8 +4,10 @@ import { getDb } from "@/lib/db";
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
-  if (!user || user.role !== "teacher" || !user.academyId) return NextResponse.json({ error: "No autorizado." }, { status: 403 });
+  if (!user || user.role !== "teacher") return NextResponse.json({ error: "No autorizado." }, { status: 403 });
   const { id } = await context.params; const body = await request.json(); const action = String(body.action || "");
+  if (process.env.NODE_ENV !== "production" && user.id === "local-demo-teacher" && ["demo-class-1", "demo-class-2"].includes(id)) return NextResponse.json({ ok: true, status: action === "accept" ? "accepted" : "rescheduled" });
+  if (!user.academyId) return NextResponse.json({ error: "No autorizado." }, { status: 403 });
   if (action === "attendance") {
     if (!body.studentId || !["yes", "no", "present", "absent"].includes(body.response)) return NextResponse.json({ error: "Asistencia inválida." }, { status: 400 });
     const [result] = await getDb().execute("INSERT INTO attendance (class_id,student_id,response) SELECT c.id,?,? FROM classes c JOIN course_students cs ON cs.course_id=c.course_id AND cs.student_id=? WHERE c.id=? AND c.academy_id=? AND c.teacher_id=? ON DUPLICATE KEY UPDATE response=VALUES(response)", [body.studentId, body.response, body.studentId, id, user.academyId, user.id]);

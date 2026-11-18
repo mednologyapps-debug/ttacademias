@@ -19,6 +19,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   const jar = await cookies();
   const demoRole = process.env.NODE_ENV === "production" ? undefined : jar.get("tt_demo_role")?.value;
   if (demoRole === "academy_admin") return { id: "local-demo-admin", name: "Admin de prueba", email: "testadmin", role: "academy_admin", academyId: null, academyName: "SpinAcademy Miraflores", academySlug: "demo" };
+  if (demoRole === "teacher") return { id: "local-demo-teacher", name: "Carlos Mendoza", email: "testteacher", role: "teacher", academyId: null, academyName: "Lawntennis Club", academySlug: "lawntennis" };
   if (demoRole === "student") return { id: "local-demo-student", name: "Mateo Gonzales", email: "testuser", role: "student", academyId: null, academyName: "SpinAcademy Miraflores", academySlug: "demo" };
   const raw = jar.get(COOKIE)?.value;
   if (!raw) return null;

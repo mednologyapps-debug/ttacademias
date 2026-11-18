@@ -6,7 +6,16 @@ import type { RowDataPacket } from "mysql2";
 export async function GET() {
   try {
     const user = await getCurrentUser();
-    if (!user || user.role !== "teacher" || !user.academyId) return NextResponse.json({ error: "No autorizado." }, { status: 403 });
+    if (!user || user.role !== "teacher") return NextResponse.json({ error: "No autorizado." }, { status: 403 });
+    if (process.env.NODE_ENV !== "production" && user.id === "local-demo-teacher") {
+      const today = new Date();
+      const at = (days: number, hour: number) => { const date = new Date(today); date.setDate(date.getDate() + days); date.setHours(hour, 0, 0, 0); return date.toISOString(); };
+      return NextResponse.json({ classes: [
+        { id: "demo-class-1", title: "Control de saques & Topspin", courseName: "Intermedio · Fundamentos de juego", startsAt: at(0, 18), status: "scheduled", students: [{ id: "demo-student-1", name: "Mateo Gonzales", response: "yes" }, { id: "demo-student-2", name: "Vanessa Cárdenas", response: null }, { id: "demo-student-3", name: "Diego Vásquez", response: "no" }] },
+        { id: "demo-class-2", title: "Táctica de partido & transiciones", courseName: "Avanzado · Temporada de verano", startsAt: at(2, 19), status: "accepted", students: [{ id: "demo-student-4", name: "Nicole Torres", response: null }, { id: "demo-student-5", name: "Mateo Gonzales", response: null }] },
+      ] });
+    }
+    if (!user.academyId) return NextResponse.json({ error: "No autorizado." }, { status: 403 });
     const [classes] = await getDb().query<({ id: string; title: string; startsAt: string; status: string; courseName: string } & RowDataPacket)[]>(
       "SELECT c.id,c.title,c.starts_at AS startsAt,c.status,co.name AS courseName FROM classes c JOIN courses co ON co.id=c.course_id WHERE c.academy_id=? AND c.teacher_id=? AND c.status IN ('scheduled','accepted','rescheduled') AND c.starts_at>=DATE_SUB(NOW(),INTERVAL 30 DAY) ORDER BY c.starts_at LIMIT 100", [user.academyId, user.id]);
     const ids = classes.map((item) => item.id);

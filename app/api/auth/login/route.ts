@@ -9,10 +9,10 @@ import { cookies } from "next/headers";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json(); const username = String(body.username || body.identifier || body.email || "").trim().toLowerCase(); const password = String(body.password || "");
-    if (process.env.NODE_ENV !== "production" && password === "test" && ["testadmin", "testuser"].includes(username)) {
-      const role = username === "testadmin" ? "academy_admin" : "student";
+    if (process.env.NODE_ENV !== "production" && password === "test" && ["testadmin", "testuser", "testteacher"].includes(username)) {
+      const role = username === "testadmin" ? "academy_admin" : username === "testteacher" ? "teacher" : "student";
       (await cookies()).set("tt_demo_role", role, { httpOnly: true, secure: false, sameSite: "lax", path: "/", maxAge: 8 * 60 * 60 });
-      return NextResponse.json({ ok: true, redirect: role === "academy_admin" ? "/admin" : "/alumno", demo: true });
+      return NextResponse.json({ ok: true, redirect: role === "academy_admin" ? "/admin" : role === "teacher" ? "/profesores" : "/alumno", demo: true });
     }
     const email = username;
     const academySlug = await getAcademySlug(); const db = getDb();

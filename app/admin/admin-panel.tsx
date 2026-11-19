@@ -6,7 +6,7 @@ import {
   ClipboardList, Clock3, CreditCard, GraduationCap, LayoutDashboard, Menu,
   MessageSquareText, Plus, Search, Settings, ShieldCheck, Trophy, UserRound,
   Users, X, CheckCircle2, ArrowUpRight, SlidersHorizontal, MapPin, MoreHorizontal,
-  Pencil, Trash2, CalendarClock, Copy, ExternalLink, Link2, Check, CirclePlus,
+  Pencil, Trash2, CalendarClock, Copy, ExternalLink, Link2, Check, CirclePlus, LogOut,
 } from "lucide-react";
 
 type Section = "Resumen" | "Alumnos" | "Profesores" | "Cursos" | "Clases" | "Rankings" | "Pagos" | "Avisos" | "Mi academia";
@@ -275,6 +275,7 @@ export default function AdminPanel() {
     setEditRecord(null); notify("Cambios guardados");
   }
   function changeSection(target: Section) { setSection(target); setSearch(""); setMobileMenu(false); }
+  async function logout() { try { await fetch("/api/auth/logout", { method: "POST" }); } finally { window.location.assign("/login"); } }
   function openCreate(target: Section) {
     setSection(target); setSearch(""); setActiveRankingId(null); setFormTitle(""); setFormDetail(""); setMemberBirth(""); setMemberDni(""); setMemberEmail(""); setMemberPhone(""); setTeacherSlots([]); setTeacherLevels([]); setCourseLevel("Intermedio"); setCourseTeachers([]); setCourseStudents([]); setCourseSlots([]); setCoursePrice(""); setCourseStarts(""); setCourseEnds(""); setClassDate(""); setRankingDate(""); setRankingVenue(""); setEditingCourseId(null); setEditingRankingId(null); if (target === "Clases") { const course = courses[0]; setClassCourseId(course?.id || ""); setClassTeacher(course?.teachers[0] || ""); setClassTime(course?.slots[0] || ""); } setDialog(true);
   }
@@ -283,11 +284,11 @@ export default function AdminPanel() {
     <aside className={`admin-sidebar ${mobileMenu ? "open" : ""}`}>
       <a href="/" className="admin-brand"><span className="admin-brand-mark">{logoUrl ? <img src={logoUrl} alt="" /> : <Activity size={19} />}</span><span>Spin<span>Academy</span></span><button className="academy-switch" onClick={(e) => { e.preventDefault(); notify("Solo tienes acceso a SpinAcademy Miraflores"); }}><small>{academyName}</small><ChevronDown size={15} /></button></a>
       <div className="admin-nav-scroll">{["GESTIÓN", "ACADEMIA", "ADMINISTRACIÓN"].map((group) => <div className="admin-nav-group" key={group}><span className="admin-nav-caption">{group}</span>{nav.filter((item) => item.group === group).map(({ label, icon: Icon }) => <button key={label} className={`admin-nav-item ${section === label ? "selected" : ""}`} onClick={() => changeSection(label)}><Icon size={17} /><span>{label}</span>{label === "Pagos" && <i className="nav-notice">3</i>}</button>)}</div>)}</div>
-      <div className="admin-user"><div className="admin-user-avatar">AM</div><div><strong>Andrea Medina</strong><small>Administradora</small></div><MoreHorizontal size={18} /></div>
+      <div className="admin-user"><div className="admin-user-avatar">AM</div><div><strong>Andrea Medina</strong><small>Administradora</small></div><button className="admin-sidebar-logout" onClick={() => void logout()} aria-label="Cerrar sesión" title="Cerrar sesión"><LogOut size={17}/><span>Salir</span></button></div>
     </aside>
     {mobileMenu && <button className="admin-mobile-scrim" aria-label="Cerrar menú" onClick={() => setMobileMenu(false)} />}
     <section className="admin-main">
-      <header className="admin-topbar"><button className="admin-menu-toggle" aria-label="Abrir menú" onClick={() => setMobileMenu((v) => !v)}><Menu size={20} /></button><div className="admin-breadcrumb"><span>Academia</span><ChevronRight size={14} /><strong>{section}</strong></div><div className="admin-top-actions"><label className="admin-search"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar alumnos, clases..." /></label><button className="admin-icon-button" aria-label="Notificaciones" onClick={() => notify("No tienes notificaciones nuevas")}><Bell size={18} /><i /></button><button className="admin-profile" onClick={() => notify("Sesión de Andrea Medina")}><span>AM</span><strong>Andrea Medina</strong><ChevronDown size={15} /></button></div></header>
+      <header className="admin-topbar"><button className="admin-menu-toggle" aria-label="Abrir menú" onClick={() => setMobileMenu((v) => !v)}><Menu size={20} /></button><div className="admin-breadcrumb"><span>Academia</span><ChevronRight size={14} /><strong>{section}</strong></div><div className="admin-top-actions"><label className="admin-search"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar alumnos, clases..." /></label><button className="admin-icon-button" aria-label="Notificaciones" onClick={() => notify("No tienes notificaciones nuevas")}><Bell size={18} /><i /></button><button className="admin-profile" onClick={() => notify("Sesión de Andrea Medina")}><span>AM</span><strong>Andrea Medina</strong><ChevronDown size={15} /></button><button className="admin-logout-top" onClick={() => void logout()} title="Cerrar sesión"><LogOut size={16}/><span>Cerrar sesión</span></button></div></header>
       <div className="admin-workspace">
         {section === "Resumen" ? <>
           <div className="admin-page-heading"><div><span className="admin-eyebrow">LUNES, 17 DE NOVIEMBRE DE 2026</span><h1>Centro de gestión</h1><p>Una vista clara de la actividad de tu academia.</p></div><button className="admin-primary-button" onClick={() => openCreate("Clases")}><Plus size={17} /> Programar clase</button></div>

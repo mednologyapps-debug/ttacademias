@@ -15,19 +15,19 @@ const slides = [
   { image: "https://images.unsplash.com/photo-1708268418738-4863baa9cf72?auto=format&fit=crop&w=2400&q=85", eyebrow: "JUEGA CON LA COMUNIDAD", title: <>La próxima pelota<br/>puede ser <em>tuya.</em></>, text: "Participa en nuestros rankings, reta a otros jugadores y celebra cada avance.", cta: "Explorar rankings" },
 ];
 const levels = [
-  { name: "Básico", description: "Empieza por el agarre, la posición y el control de la pelota. Aprende a sostener tus primeros intercambios." },
-  { name: "Intermedio", description: "Varía el saque, lee el efecto y encadena golpes de derecha y revés con mayor precisión." },
-  { name: "Avanzado", description: "Trabaja la colocación, cambia el ritmo del punto y ensaya decisiones de partido." },
+  { name: "Básico", drill: "Control del primer golpe", description: "Empieza por el agarre, la posición y el control de la pelota. Aprende a sostener tus primeros intercambios." },
+  { name: "Intermedio", drill: "Saque y tercera pelota", description: "Varía el saque, lee el efecto y encadena golpes de derecha y revés con mayor precisión." },
+  { name: "Avanzado", drill: "Cambios de ritmo", description: "Trabaja la colocación, cambia el ritmo del punto y ensaya decisiones de partido." },
 ];
 const benefits = [
-  { title: "Correcciones en la mesa", text: "Tu profesor observa el golpe y te ayuda a ajustar el movimiento en la siguiente pelota." },
-  { title: "Práctica en grupo", text: "Alterna compañeros y aprende a responder a otros ritmos y estilos de juego." },
-  { title: "Partidos de ranking", text: "Lleva lo que practicas a un partido con alumnos y jugadores invitados." },
+  { art: "paddle", title: "Correcciones en la mesa", text: "Tu profesor observa el golpe y te ayuda a ajustar el movimiento en la siguiente pelota." },
+  { art: "balls", title: "Práctica en grupo", text: "Alterna compañeros y aprende a responder a otros ritmos y estilos de juego." },
+  { art: "score", title: "Partidos de ranking", text: "Lleva lo que practicas a un partido con alumnos y jugadores invitados." },
 ];
 const demoCoaches: Record<string, { portrait: string; specialty: string }> = {
-  "Carlos Mendoza": { portrait: "photo-1500648767791-00dcc994a43e", specialty: "Técnica y control" },
-  "Raúl Peña": { portrait: "photo-1506794778202-cad84cf45f1d", specialty: "Táctica de juego" },
-  "Lucía Salazar": { portrait: "photo-1534528741775-53994a69daeb", specialty: "Desarrollo deportivo" },
+  "Carlos Mendoza": { portrait: "/images/team/carlos.webp", specialty: "Técnica y control" },
+  "Raúl Peña": { portrait: "/images/team/raul.webp", specialty: "Táctica de juego" },
+  "Lucía Salazar": { portrait: "/images/team/lucia.webp", specialty: "Desarrollo deportivo" },
 };
 
 export default function AcademyLanding({ academyName, logoUrl, primaryColor, ranking, teachers }: Props) {
@@ -81,7 +81,6 @@ export default function AcademyLanding({ academyName, logoUrl, primaryColor, ran
           {slide === 1
             ? <button type="button" className="club-action" onClick={() => setModal("registration")}>{current.cta}</button>
             : <a className="club-action" href={slide === 2 ? "#ranking" : "#academia"}>{current.cta}</a>}
-          <a href={slide === 0 ? "#equipo" : "#academia"} className="club-hero-link">{slide === 0 ? "Conoce al equipo" : "La academia"}</a>
         </div>
       </div>
       <div className="hero-v2-controls"><div>
@@ -91,32 +90,44 @@ export default function AcademyLanding({ academyName, logoUrl, primaryColor, ran
     </section>
 
     <section id="academia" className="club-section club-intro">
-      <div className="club-intro-media">
-        <img src={slides[2].image} alt="Paleta y pelota sobre una mesa de entrenamiento" loading="lazy" />
-      </div>
       <div className="club-intro-copy">
         <h2>Entrena a tu nivel.</h2>
-        <p>En {academyName} compartimos mesa desde el primer saque. Elige un nivel para conocer qué se trabaja en clase.</p>
+        <p>En {academyName} compartimos mesa desde el primer saque. Elige tu nivel para ver qué practicarás en clase.</p>
         <div className="club-levels" role="group" aria-label="Nivel de entrenamiento">
           {levels.map((item, index) => (
             <button key={item.name} type="button" aria-pressed={index === level}
               aria-controls="level-description" onClick={() => setLevel(index)}>{item.name}</button>
           ))}
         </div>
-        <p id="level-description" aria-live="polite">{levels[level].description}</p>
         <button type="button" className="club-action" onClick={() => setModal("registration")}>Matricúlate en la academia</button>
+      </div>
+      <div className="club-training-preview">
+        <img src={slides[2].image} alt="Mesa de tenis preparada para la práctica" loading="lazy" />
+        <div id="level-description" aria-live="polite" aria-atomic="true">
+          <div key={level} className="club-drill">
+            <span>Nivel {levels[level].name.toLocaleLowerCase("es")}</span>
+            <h3>{levels[level].drill}</h3>
+            <p>{levels[level].description}</p>
+          </div>
+        </div>
       </div>
     </section>
 
     <section id="beneficios" className="club-practice">
       <div className="club-section club-practice-layout">
-        <h2>Lo que te llevas<br />de cada sesión.</h2>
-        <dl>{benefits.map(({title, text}) => (
-          <div key={title}><dt>{title}</dt><dd>{text}</dd></div>
-        ))}</dl>
+        <h2>Lo que te llevas de cada sesión.</h2>
+        <div className="club-benefit-grid">
+          {benefits.map(({art, title, text}) => (
+            <article key={art}>
+              <div aria-hidden="true" className={`club-object club-object-${art}`}>
+                {art === "score" && <><span>10</span><span>08</span></>}
+              </div>
+              <h3>{title}</h3><p>{text}</p>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
-
     <section id="equipo" className="club-section club-staff">
       <h2>El equipo técnico.</h2>
       <div className="club-roster">
@@ -124,7 +135,7 @@ export default function AcademyLanding({ academyName, logoUrl, primaryColor, ran
           const profile = demoCoaches[name];
           return <figure key={name}>
             <div className="club-portrait">
-              {profile ? <img loading="lazy" alt="" src={`https://images.unsplash.com/${profile.portrait}?auto=format&fit=crop&w=700&q=82`}/>
+              {profile ? <img loading="lazy" alt="" src={profile.portrait}/>
                 : <span aria-hidden="true">{name.split(" ").map(part => part[0]).slice(0,2).join("")}</span>}
             </div>
             <figcaption><h3>{name}</h3>{profile && <p>{profile.specialty}</p>}</figcaption>
@@ -132,7 +143,7 @@ export default function AcademyLanding({ academyName, logoUrl, primaryColor, ran
         })}
       </div>
     </section>
-    <section id="ranking" className="landing-ranking-v2"><div className="ranking-v2-orb"/><div className="ranking-v2-copy"><h2>{ranking?<>Ranking Relámpago<br/><em>de la Academia</em></>:<>Consulta el ranking<br/><em>de la academia</em></>}</h2><p>{ranking?"Revisa los detalles y asegura tu lugar en el próximo encuentro.":"Revisa la tabla de posiciones y descubre cómo avanza la comunidad de la academia."}</p><a href="/rankings" className="ranking-v2-link">Ver tabla de posiciones</a></div>{ranking?<article className="ranking-v2-card"><div className="ranking-status-v2">Inscripción abierta</div><h3>{ranking.title}</h3><div className="ranking-facts-v2"><p><CalendarDays size={17}/><span><small>Fecha y hora</small><strong>{new Date(ranking.startsAt).toLocaleString("es-PE",{dateStyle:"medium",timeStyle:"short"})}</strong></span></p><p><Activity size={17}/><span><small>Sede</small><strong>{ranking.venue}</strong></span></p></div><div className="ranking-prices-v2"><div><small>Tarifa estudiante</small><strong>S/ {Number(ranking.studentPrice).toFixed(2)}</strong></div><div><small>Tarifa externa</small><strong>S/ {Number(ranking.publicPrice).toFixed(2)}</strong></div></div><div className="ranking-card-footer-v2"><span>Aforo máximo: {ranking.capacity} jugadores</span><button type="button" onClick={()=>setModal("ranking")} className="ranking-v2-primary">Ver detalles e inscribirme</button></div></article>:<div className="ranking-v2-empty"><Trophy size={26}/><strong>Pronto habrá un nuevo ranking</strong><span>La tabla de posiciones de la academia está disponible para consulta.</span></div>}</section>
+    <section id="ranking" className="landing-ranking-v2"><div className="ranking-v2-orb"/><div className="ranking-v2-copy"><h2>{ranking?<>Ranking Relámpago<br/><em>de la Academia</em></>:<>Consulta el ranking<br/><em>de la academia</em></>}</h2><p>{ranking?"Revisa los detalles y asegura tu lugar en el próximo encuentro.":"Revisa la tabla de posiciones y descubre cómo avanza la comunidad de la academia."}</p><a href="/rankings" className="ranking-v2-link">Ver tabla de posiciones</a></div>{ranking?<article className="ranking-v2-card"><div className="ranking-status-v2">Inscripción abierta</div><h3>{ranking.title}</h3><div className="ranking-facts-v2"><p><CalendarDays size={17}/><span><small>Fecha y hora</small><strong>{new Date(ranking.startsAt).toLocaleString("es-PE",{dateStyle:"medium",timeStyle:"short"})}</strong></span></p><p><Activity size={17}/><span><small>Sede</small><strong>{ranking.venue}</strong></span></p></div><div className="ranking-prices-v2"><div><small>Tarifa estudiante</small><strong>S/ {Number(ranking.studentPrice).toFixed(2)}</strong></div><div><small>Tarifa externa</small><strong>S/ {Number(ranking.publicPrice).toFixed(2)}</strong></div></div><div className="ranking-card-footer-v2"><span>Aforo máximo: {ranking.capacity} jugadores</span><button type="button" onClick={()=>setModal("ranking")} className="ranking-v2-primary">Inscribirme</button></div></article>:<div className="ranking-v2-empty"><Trophy size={26}/><strong>Pronto habrá un nuevo ranking</strong><span>La tabla de posiciones de la academia está disponible para consulta.</span></div>}</section>
     <footer className="landing-footer-v2"><Link href="#inicio" className="landing-brand-v2"><span><Activity size={18}/></span>{academyName}</Link><span>Tenis de mesa, comunidad y progreso.</span><Link href="/login">Acceso para alumnos y profesores</Link></footer>
     {modal && (
       <Modal className={`public-form-dialog ${modal === "registration" ? "enroll" : "ranking"}`}

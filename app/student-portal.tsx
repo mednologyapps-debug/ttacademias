@@ -106,6 +106,12 @@ export default function StudentPortal() {
           <span className="notification-dot" />
         </button>
       </header>
+      <aside className="student-desktop-sidebar" aria-label="Navegación del estudiante">
+        <div className="student-sidebar-brand"><span>{academyBrand.logoUrl ? <img src={academyBrand.logoUrl} alt=""/> : <Activity size={19}/>}</span><strong>{academyBrand.name}</strong></div>
+        <small>MI ESPACIO</small>
+        {tabs.map(({label,icon:Icon})=><button key={label} className={tab===label?"selected":""} onClick={()=>navigate(label)}><Icon size={18}/><span>{label}</span></button>)}
+        <button className="student-sidebar-logout" onClick={async()=>{await fetch("/api/auth/logout",{method:"POST"});window.location.assign("/login")}}><LogOut size={18}/><span>Cerrar sesión</span></button>
+      </aside>
       {menuOpen && <><button className="desktop-menu-scrim" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)}/><aside className="desktop-menu-panel"><div className="desktop-menu-title"><strong>{academyBrand.name}</strong><button onClick={() => setMenuOpen(false)} aria-label="Cerrar menú"><X size={18}/></button></div>{tabs.map(({label,icon:Icon})=><button key={label} className={tab===label?"selected":""} onClick={()=>navigate(label)}><Icon size={18}/>{label}</button>)}</aside></>}
 
       <section className="content" key={tab}>

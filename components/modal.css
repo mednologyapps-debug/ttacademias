@@ -1,0 +1,41 @@
+dialog.academy-dialog {
+  position:fixed; inset:0; margin:auto; max-width:calc(100vw - 32px);
+  max-height:calc(100dvh - 48px); overflow:auto; overscroll-behavior:contain;
+  color:inherit; scrollbar-width:thin; box-sizing:border-box;
+}
+dialog.academy-dialog::backdrop { background:rgba(15,29,49,.58); backdrop-filter:blur(4px); }
+dialog.public-form-dialog {
+  width: min(880px, 100%); height:fit-content; border:0; border-radius:18px;
+  padding:0; background:white; box-shadow:0 22px 70px #0f1d3130;
+}
+dialog.public-form-dialog.enroll { width:min(480px, 100%); }
+.public-form-dialog .dialog-exit {
+  position:absolute; right:14px; top:14px; display:grid; width:40px; height:40px;
+  place-items:center; background:white; color:#25334a; border:1px solid #dce3ec;
+  border-radius:50%; z-index:1; cursor:pointer;
+}
+.public-enrollment {padding:clamp(22px,4vw,36px);}
+.public-enrollment .login-heading {padding-right:38px; margin-bottom:22px;}
+.public-enrollment .login-heading h2 {font-size:28px;letter-spacing:-.04em;margin:0 0 6px;}
+.public-form-dialog .ranking-public-shell {
+  width:100%; margin:0; border:0; border-radius:0; box-shadow:none;
+  grid-template-columns:1fr 1fr; animation:none;
+}
+.public-form-dialog .ranking-public-form-wrap {padding:55px 24px 28px;}
+.public-form-dialog .ranking-public-intro {padding:35px 25px;}
+.public-form-dialog .ranking-public-intro h1 {font-size:clamp(24px,3vw,32px);margin:0 0 18px;}
+.public-form-dialog .ranking-public-intro p, .public-form-dialog .ranking-public-form p,
+.public-form-dialog .ranking-public-facts span {font-size:14px;}
+@media(max-width:680px){
+  dialog.academy-dialog {max-width:calc(100vw - 16px); max-height:calc(100dvh - 20px);}
+  .public-form-dialog .ranking-public-shell {grid-template-columns:minmax(0,1fr);}
+  .public-form-dialog .ranking-public-intro {padding:24px 20px 16px;}
+  .public-form-dialog .ranking-public-intro h1 {padding-right:44px;}
+  .public-form-dialog .ranking-public-form-wrap {padding:16px 20px 24px;}
+}
+.dialog-notice { position:sticky;bottom:0;margin:12px 0 0;padding:10px 14px;background:#203247;color:white;border-radius:8px;font-size:.875rem; }
+.embedded-ranking .ranking-public-unavailable { margin:0 auto; padding:48px 24px 32px; border:0; background:transparent; box-shadow:none; }
+.public-form-dialog .ranking-public-primary { background:var(--brand); font-size:.875rem; }
+.public-form-dialog .ranking-public-primary:disabled { background:#b3bfd1; }
+.public-form-dialog .ranking-public-form label, .public-enrollment .login-form label { font-size:.875rem; }
+.public-form-dialog .ranking-public-form input, .public-enrollment .input-wrap input { font-size:1rem; }

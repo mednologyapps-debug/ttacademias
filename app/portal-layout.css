@@ -1,0 +1,135 @@
+.member-layout {
+  --member-ink: #162438;
+  --member-line: #dfe5ee;
+  --header-height: 65px;
+  display: grid;
+  grid-template: auto 1fr / auto minmax(0, 1fr);
+  align-items: start;
+  min-height: 100dvh;
+  background: #f6f8fb;
+  color: var(--member-ink);
+}
+.member-header {
+  position: sticky;
+  z-index: 9;
+  top: 0;
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: var(--header-height);
+  padding-inline: 18px clamp(18px, 3vw, 46px);
+  background: #fff;
+  border-bottom: 1px solid var(--member-line);
+}
+.member-brand { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; min-width: 0; }
+.member-brand > span {
+  flex: none; display: grid; place-items: center; width: 36px; height: 36px;
+  border-radius: 9px; background: var(--brand); color: #fff; overflow: hidden;
+}
+.member-brand img { width: 100%; height: 100%; object-fit: contain; }
+.member-brand strong { font-size: 1rem; letter-spacing: -.035em; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
+.member-role { border-left: 1px solid var(--member-line); padding-left: 18px; color: #536176; font-size: .875rem; }
+.member-header-action { margin-left: auto; }
+.member-header-button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; color: #354157; border: 1px solid var(--member-line); background: #fff; border-radius: 9px; cursor: pointer; }
+.member-rail {
+  position: sticky; top: var(--header-height); display: flex; flex-direction: column;
+  width: 72px; height: calc(100dvh - var(--header-height)); padding: 16px 10px; gap: 5px;
+  background: #fff; border-right: 1px solid var(--member-line); overflow: hidden auto;
+  transition: width .19s ease;
+}
+.member-rail:has(:focus-visible) { width: 212px; }
+@media (hover: hover) { .member-rail:hover { width: 212px; } }
+.member-rail button { display: flex; gap: 16px; align-items: center; flex: none; height: 46px; border: 0; padding: 0 15px; border-radius: 9px; color: #465369; background: transparent; overflow: hidden; white-space: nowrap; cursor: pointer; text-align: left; font-size: .875rem; font-weight: 560; }
+.member-rail button:hover { background: #f3f5f8; }
+.member-rail button[aria-current] { color: var(--brand); background: var(--brand-soft); }
+.member-rail button svg { flex: 0 0 20px; }
+.member-rail span { opacity: 0; }
+.member-rail:has(:focus-visible) span { opacity: 1; }
+@media (hover: hover) { .member-rail:hover span { opacity: 1; } }
+.member-rail .member-rail-exit { margin-top: auto; }
+.member-main { min-width: 0; width: 100%; max-width: 1440px; margin-inline: auto; padding: clamp(24px, 3vw, 48px); }
+.teacher-work, .student-work { display: grid; align-items: start; gap: 20px; min-width: 0; }
+.member-main :is(.teacher-page-heading, .page-title) { margin: 0 0 4px; }
+.member-main :is(.teacher-page-heading, .page-title) h1 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.45rem); font-weight: 660; letter-spacing: -.055em; line-height: 1.12; }
+.member-main :is(.teacher-page-heading, .page-title) p { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font-size: .95rem; line-height: 1.5; color: #526177; }
+.member-main .card, .teacher-work .teacher-class-card { border-radius: 14px; border-color: var(--member-line); background: #fff; box-shadow: 0 2px 4px #162a4505; }
+.teacher-work .teacher-class-grid { grid-template-columns: minmax(0,1fr); gap: 16px; }
+.teacher-work .teacher-class-card { display: grid; grid-template-columns: minmax(0,1fr); padding: 0; overflow: hidden; }
+.teacher-session-info, .teacher-roll { min-width: 0; padding: clamp(18px, 2.15vw, 32px); }
+.teacher-roll { border-top: 1px solid var(--member-line); }
+.teacher-work .teacher-class-top { flex-wrap: wrap; justify-content: flex-start; gap: 8px; }
+.teacher-work .course-chip { max-width: 100%; white-space: normal; overflow-wrap: anywhere; font-size: .82rem; background: var(--brand-soft); color: var(--brand); }
+.teacher-work .teacher-class-state { font-size: .78rem; }
+.teacher-work .teacher-class-card h2 { margin: 16px 0 12px; font-size: clamp(1.25rem, 2vw, 1.65rem); font-weight: 650; line-height: 1.18; overflow-wrap: anywhere; }
+.teacher-work .teacher-class-date { text-transform: none; line-height: 1.5; font-size: .875rem; }
+.teacher-work .teacher-class-date svg, .teacher-work .teacher-class-date >span { flex-shrink: 0; }
+.teacher-work .teacher-class-date >span { margin-left: 0; text-transform: none; }
+.teacher-work .teacher-actions { margin: 20px 0 0; }
+.teacher-work :is(.teacher-accept, .teacher-reschedule-trigger, .teacher-confirmed) { min-height: 42px; font-size: .875rem; }
+.teacher-work .teacher-accept { background: var(--brand); box-shadow: none; }
+.teacher-work .teacher-students-heading { border: 0; margin: 0 0 10px; padding: 0; }
+.teacher-work :is(.teacher-students-heading strong, .teacher-student-row >strong) { font-size: .89rem; }
+.teacher-work .teacher-student-row { grid-template-columns: 30px minmax(0,1fr) auto; gap: 8px; }
+.teacher-work :is(.attendance-locked, .attendance-result, .attendance-choice) { grid-column: auto; }
+.teacher-work :is(.attendance-locked, .attendance-result, .attendance-choice button) { font-size: .76rem; }
+.teacher-work .teacher-error { margin: 0; }
+.student-work > * { min-width: 0; }
+.student-work .section-block { margin: 0; }
+.student-work .section-heading { margin: 0 0 10px; min-height: 26px; }
+.student-work .section-heading h2, .student-work .profile-section > h2 { font-size: 1.09rem; }
+.student-work :is(.class-card, .membership-card, .compact-tournament) { padding: clamp(16px, 2vw, 26px); }
+.student-work .class-card h3 { font-size: 1.3rem; }
+.student-work :is(.membership-title h3, .tournament-top h3) { font-size: 1.1rem; }
+.student-work :is(.subtle, .button, .settings-row strong, .session-info strong, .renew-row .text-link) { font-size: .875rem; }
+.student-work .button { min-height: 44px; }
+.student-work :is(.due-row, .capacity-strip, .price small, .notice-copy p, .muted, .coach-line, .duration, .time-pill) { font-size: .8rem; }
+.student-work .notice-card { border-radius: 12px; background: var(--brand-soft); border-color: var(--brand-border); box-shadow: none; }
+.student-work .dismiss-button { min-height: 28px; }
+.student-work .class-card .button { margin: 0; }
+.student-work .notice-copy .notice-eyebrow { text-transform: none; letter-spacing: .02em; }
+.student-work .compact-tournament { display: grid; gap: 12px; }
+.student-work .compact-tournament > * { margin: 0; }
+.student-calendar-column { min-width: 0; }
+.student-work .ranking-back { justify-self: start; margin: 0; }
+.student-work .ranking-detail-layout { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1100px) {
+  .teacher-class-card .teacher-roll { border-top: 0; border-left: 1px solid var(--member-line); }
+  .teacher-work .teacher-class-card { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
+  .student-work { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; }
+  .student-work > :is(.page-title, .notice-card, .ranking-section, .profile-card, .profile-footnote, .player-ranking-card, .ranking-detail-layout, .ranking-back) { grid-column: 1/-1; }
+  .student-work .ranking-detail-layout { grid-template-columns: minmax(0,1.5fr) minmax(240px, .8fr); }
+  .student-work .compact-tournament { grid-template-columns: minmax(0,1fr) minmax(280px,.8fr); column-gap: 48px; }
+  .student-work .compact-tournament > .tournament-top { grid-area: 1 / 1; }
+  .student-work .compact-tournament > .subtle { grid-area: 2 / 1; }
+  .student-work .compact-tournament > .capacity-strip { grid-area: 1 / 2; }
+  .student-work .compact-tournament > .tournament-footer { grid-area: 2 / 2; }
+  .student-work :is(.class-section,.membership-section) { align-self: stretch; display: flex; flex-direction: column; }
+  .student-work :is(.class-card,.membership-card) { flex: 1; display: flex; flex-direction: column; }
+  .student-work .class-card .attendance-actions, .student-work .membership-card .renew-row { margin-top: auto; padding-top: 18px; }
+  .student-work .class-card .coach-box, .student-work .membership-card .progress-track { margin-bottom: 18px; }
+}
+@media (max-width: 760px) {
+  .member-layout { display: block; --header-height: 59px; padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+  .member-main { padding: 22px clamp(14px, 3vw, 24px) 16px; }
+  .member-header { padding-inline: 14px; gap: 10px; }
+  .member-role { padding-left: 10px; font-size: .8rem; }
+  .member-brand { gap: 8px; }
+  .member-brand strong { font-size: .94rem; }
+  .member-header-button { min-width: 40px; padding-inline: 8px; }
+  .member-rail, .member-rail:hover, .member-rail:has(:focus-visible) {
+    position: fixed; z-index: 12; inset: auto 0 0; width: 100%; height: auto;
+    padding: 5px 8px calc(5px + env(safe-area-inset-bottom)); display: flex; flex-direction: row;
+    border: 0; border-top: 1px solid var(--member-line);
+  }
+  .member-rail button { flex: 1 1 0; display: grid; height: 49px; gap: 3px; padding: 3px; justify-items: center; justify-content: center; font-size: .72rem; }
+  .member-rail span { opacity: 1; }
+  .member-rail .member-rail-exit { display: none; }
+  .student-work .compact-tournament .subtle { margin: 0; }
+  .member-main .teacher-reschedule-modal, .member-main .payment-modal { max-height: 94dvh; overflow-y: auto; }
+}
+@media (max-width: 420px) {
+  .teacher-work .teacher-student-row { grid-template-columns: 30px minmax(0,1fr); }
+  .teacher-work :is(.attendance-locked, .attendance-result, .attendance-choice) { grid-column: 2; justify-self: start; }
+  .student-work :is(.membership-title, .renew-row, .tournament-footer, .class-meta) { flex-wrap: wrap; }
+}

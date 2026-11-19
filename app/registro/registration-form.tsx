@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, UserRound } from "lucide-react";
 import AcademyBrand from "@/components/academy-brand";
 
-export default function RegistrationForm() {
+export default function RegistrationForm({ embedded = false }: { embedded?: boolean }) {
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -27,11 +27,14 @@ export default function RegistrationForm() {
     finally { setBusy(false); }
   }
 
-  return <main className="auth-page">
-    <section className="auth-card">
+  const Page = embedded ? "div" : "main";
+  return <Page className={embedded ? "public-enrollment" : "auth-page"}>
+    <section className={embedded ? undefined : "auth-card"}>
+      {!embedded && <>
       <Link href="/login" className="back-link"><ArrowLeft size={16} /> Volver al inicio de sesión</Link>
       <Link href="/" className="brand auth-brand"><AcademyBrand /></Link>
-      <div className="login-heading"><span className="login-eyebrow">NUEVA CUENTA</span><h2>Empieza a entrenar.</h2><p>Crea tu cuenta de estudiante para entrar a tu academia.</p></div>
+      </>}
+      <div className="login-heading"><h2>{embedded ? "Matricularme" : "Empieza a entrenar."}</h2><p>Crea tu cuenta de estudiante para entrar a tu academia.</p></div>
       <form className="login-form" onSubmit={handleSubmit}>
         <label htmlFor="fullName">Nombre completo</label>
         <div className="input-wrap"><UserRound size={18} /><input id="fullName" name="fullName" type="text" placeholder="Tu nombre y apellido" autoComplete="name" required /></div>
@@ -43,12 +46,12 @@ export default function RegistrationForm() {
         <div className="input-wrap"><LockKeyhole size={18} /><input id="registerPassword" name="password" type={showPassword ? "text" : "password"} placeholder="Mínimo 10 caracteres" autoComplete="new-password" minLength={10} required /><button className="reveal-button" type="button" aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
         <label htmlFor="confirmPassword">Confirma tu contraseña</label>
         <div className="input-wrap"><LockKeyhole size={18} /><input id="confirmPassword" name="confirmPassword" type={showPassword ? "text" : "password"} placeholder="Repite tu contraseña" autoComplete="new-password" minLength={10} required /></div>
-        <button className="button button-primary login-submit" type="submit" disabled={busy}>{busy ? "Creando cuenta…" : "Crear cuenta"} {!busy && <ArrowRight size={17} />}</button>
+        <button className="button button-primary login-submit" type="submit" disabled={busy}>{busy ? "Creando cuenta…" : "Crear cuenta"} {!busy && !embedded && <ArrowRight size={17} />}</button>
         {message && <p className="login-message" role="status">{message}</p>}
       </form>
       <div className="login-divider"><span /><small>O REGÍSTRATE CON</small><span /></div>
       <button className="google-button" type="button" onClick={() => setMessage("El registro con Google se activará al configurar la autenticación de la academia.")}><span className="google-g">G</span>Crear cuenta con Google</button>
       <p className="login-help">¿Ya tienes una cuenta? <Link href="/login">Inicia sesión</Link></p>
     </section>
-  </main>;
+  </Page>;
 }

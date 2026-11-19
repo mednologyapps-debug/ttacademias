@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Activity, ArrowLeft, ArrowRight, CalendarDays, Menu, Trophy, Users, X, BookOpen, Target } from "lucide-react";
+import Modal from "@/components/modal";
+import RegistrationForm from "./registro/registration-form";
+import RankingRegistration from "./ranking/[id]/ranking-registration";
+import "./landing-editorial.css";
+import { Activity, ArrowLeft, ArrowRight, CalendarDays, Menu, Trophy, X } from "lucide-react";
 
 type Props = { academyName: string; logoUrl: string | null; primaryColor: string; ranking: { id: string; title: string; startsAt: string; venue: string; studentPrice: string; publicPrice: string; capacity: number } | null; teachers: string[] };
 const slides = [
@@ -10,32 +14,135 @@ const slides = [
   { image: "https://images.unsplash.com/photo-1786025106050-1aa8eaa5ad3e?auto=format&fit=crop&w=2400&q=85", eyebrow: "TU JUEGO, A TU RITMO", title: <>Aprende. Entrena.<br/><em>Vuelve mejor.</em></>, text: "Encuentra tu nivel, construye técnica y disfruta cada sesión dentro y fuera de la mesa.", cta: "Quiero entrenar" },
   { image: "https://images.unsplash.com/photo-1708268418738-4863baa9cf72?auto=format&fit=crop&w=2400&q=85", eyebrow: "JUEGA CON LA COMUNIDAD", title: <>La próxima pelota<br/>puede ser <em>tuya.</em></>, text: "Participa en nuestros rankings, reta a otros jugadores y celebra cada avance.", cta: "Explorar rankings" },
 ];
-const benefits = [
-  { icon: Activity, n: "01", title: "Entrena con método", text: "Sesiones pensadas para tu nivel, con objetivos claros y seguimiento de tu progreso." },
-  { icon: Users, n: "02", title: "Crece en comunidad", text: "Conoce jugadores, comparte la mesa y aprende de profesores que acompañan tu evolución." },
-  { icon: Trophy, n: "03", title: "Compite y disfruta", text: "Suma experiencia con rankings accesibles para estudiantes y jugadores invitados." },
+const levels = [
+  { name: "Básico", description: "Empieza por el agarre, la posición y el control de la pelota. Aprende a sostener tus primeros intercambios." },
+  { name: "Intermedio", description: "Varía el saque, lee el efecto y encadena golpes de derecha y revés con mayor precisión." },
+  { name: "Avanzado", description: "Trabaja la colocación, cambia el ritmo del punto y ensaya decisiones de partido." },
 ];
-const portraits = ["https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=700&q=80", "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=700&q=80", "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=700&q=80"];
+const benefits = [
+  { title: "Correcciones en la mesa", text: "Tu profesor observa el golpe y te ayuda a ajustar el movimiento en la siguiente pelota." },
+  { title: "Práctica en grupo", text: "Alterna compañeros y aprende a responder a otros ritmos y estilos de juego." },
+  { title: "Partidos de ranking", text: "Lleva lo que practicas a un partido con alumnos y jugadores invitados." },
+];
+const demoCoaches: Record<string, { portrait: string; specialty: string }> = {
+  "Carlos Mendoza": { portrait: "photo-1500648767791-00dcc994a43e", specialty: "Técnica y control" },
+  "Raúl Peña": { portrait: "photo-1506794778202-cad84cf45f1d", specialty: "Táctica de juego" },
+  "Lucía Salazar": { portrait: "photo-1534528741775-53994a69daeb", specialty: "Desarrollo deportivo" },
+};
 
 export default function AcademyLanding({ academyName, logoUrl, primaryColor, ranking, teachers }: Props) {
   const [slide, setSlide] = useState(0); const [menuOpen, setMenuOpen] = useState(false); const [modal, setModal] = useState<"registration" | "ranking" | null>(null);
+  const [level, setLevel] = useState(0);
   const current = slides[slide];
+  useEffect(() => {
+    if (!menuOpen) return;
+    function closeMenu(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        document.getElementById("club-menu-toggle")?.focus();
+      }
+    }
+    window.addEventListener("keydown", closeMenu);
+    return () => window.removeEventListener("keydown", closeMenu);
+  }, [menuOpen]);
   function go(direction: number) { setSlide((n) => (n + direction + slides.length) % slides.length); }
-  useEffect(()=>{const timer=window.setInterval(()=>setSlide(n=>(n+1)%slides.length),7000);return()=>window.clearInterval(timer)},[]);
+  useEffect(() => {
+    if (modal || menuOpen || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => setSlide((n) => (n + 1) % slides.length), 7000);
+    return () => window.clearInterval(timer);
+  }, [modal, menuOpen]);
   useEffect(()=>{if(!ranking||ranking.id!=="demo-ranking")return;try{const key="ttacademias:rankings";const saved=JSON.parse(localStorage.getItem(key)||"[]") as Array<Record<string,unknown>&{id:string}>;if(!saved.some(item=>item.id===ranking.id)){const date=new Date(ranking.startsAt);saved.push({id:ranking.id,title:ranking.title,date:date.toISOString().slice(0,10),time:date.toLocaleTimeString("es-PE",{hour:"numeric",minute:"2-digit"}),venue:ranking.venue,studentPrice:Number(ranking.studentPrice),publicPrice:Number(ranking.publicPrice),capacity:ranking.capacity,participants:[]});localStorage.setItem(key,JSON.stringify(saved))}}catch{}},[ranking]);
-  useEffect(()=>{if(!modal)return;const close=(event:KeyboardEvent)=>{if(event.key==="Escape")setModal(null)};window.addEventListener("keydown",close);document.body.style.overflow="hidden";return()=>{window.removeEventListener("keydown",close);document.body.style.overflow=""}},[modal]);
   return <main className="academy-landing-v2" style={{ ["--brand" as string]: primaryColor } as React.CSSProperties}>
-    <header className="landing-nav-v2"><Link href="#inicio" className="landing-brand-v2"><span>{logoUrl ? <img src={logoUrl} alt=""/> : <Activity size={20}/>}</span>{academyName}</Link><nav><a href="#inicio">Inicio</a><a href="#academia">La academia</a><a href="#equipo">Equipo técnico</a><a href="#ranking">Rankings</a><Link href="/login" className="landing-login">Ingresar</Link><button type="button" onClick={()=>setModal("registration")} className="landing-nav-cta">Matricularme</button></nav><button className="landing-menu-toggle" onClick={()=>setMenuOpen(!menuOpen)} aria-label={menuOpen?"Cerrar menú":"Abrir menú"}>{menuOpen?<X/>:<Menu/>}</button></header>
-    {menuOpen&&<div className="landing-mobile-menu"><a href="#academia" onClick={()=>setMenuOpen(false)}>La academia</a><a href="#beneficios" onClick={()=>setMenuOpen(false)}>Beneficios</a><a href="#equipo" onClick={()=>setMenuOpen(false)}>Equipo técnico</a><a href="#ranking" onClick={()=>setMenuOpen(false)}>Rankings</a><Link href="/login">Ingresar</Link><button onClick={()=>{setMenuOpen(false);setModal("registration")}}>Matricularme</button></div>}
-    <section id="inicio" className="landing-hero-v2" style={{backgroundImage:`linear-gradient(90deg,rgba(0,23,41,.94) 0%,rgba(0,28,48,.79) 42%,rgba(0,28,48,.25) 100%),url("${current.image}")`}}>
-      <div className="hero-v2-grain"/><div className="hero-v2-copy" key={slide}><h1>{current.title}</h1><p>{current.text}</p><div className="hero-v2-actions"><button type="button" onClick={()=>slide===2?document.getElementById("ranking")?.scrollIntoView({behavior:"smooth"}):setModal("registration")} className="hero-v2-cta">{current.cta}</button><a href="#academia" className="hero-v2-secondary">Descubre más</a></div></div>
-      <div className="hero-v2-controls"><div><button onClick={()=>go(-1)} aria-label="Imagen anterior"><ArrowLeft/></button><button onClick={()=>go(1)} aria-label="Imagen siguiente"><ArrowRight/></button></div></div><div className="hero-v2-progress"><i style={{transform:`translateX(${slide*100}%)`}}/></div>
+    <header className="club-header">
+      <div className="club-nav">
+        <a href="#inicio" className="club-wordmark">
+          <span>{logoUrl ? <img src={logoUrl} alt="" /> : <Activity size={21} />}</span>
+          {academyName}
+        </a>
+        <nav aria-label="Navegación principal" id="club-navigation" data-open={menuOpen}
+          onClick={() => setMenuOpen(false)}>
+          <a href="#inicio">Inicio</a>
+          <a href="#academia">La academia</a>
+          <a href="#equipo">Equipo técnico</a>
+          <a href="#ranking">Rankings</a>
+          <Link href="/login" className="club-login">Ingresar</Link>
+          <button type="button" className="club-action" onClick={() => setModal("registration")}>Matricularme</button>
+        </nav>
+        <button type="button" id="club-menu-toggle" className="club-nav-toggle" aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
+          aria-expanded={menuOpen} aria-controls="club-navigation" onClick={() => setMenuOpen(!menuOpen)}>
+          {menuOpen ? <X /> : <Menu />}
+        </button>
+      </div>
+    </header>
+    <section id="inicio" className="landing-hero-v2 club-hero" style={{backgroundImage:`linear-gradient(90deg,rgba(0,20,38,.90),rgba(0,20,38,.59) 48%,rgba(0,20,38,.18)),url("${current.image}")`}}>
+      <div className="hero-v2-copy" key={slide}>
+        <h1>{current.title}</h1><p>{current.text}</p>
+        <div className="hero-v2-actions">
+          {slide === 1
+            ? <button type="button" className="club-action" onClick={() => setModal("registration")}>{current.cta}</button>
+            : <a className="club-action" href={slide === 2 ? "#ranking" : "#academia"}>{current.cta}</a>}
+          <a href={slide === 0 ? "#equipo" : "#academia"} className="club-hero-link">{slide === 0 ? "Conoce al equipo" : "La academia"}</a>
+        </div>
+      </div>
+      <div className="hero-v2-controls"><div>
+        <button onClick={() => go(-1)} aria-label="Imagen anterior"><ArrowLeft /></button>
+        <button onClick={() => go(1)} aria-label="Imagen siguiente"><ArrowRight /></button>
+      </div></div>
     </section>
-    <section id="academia" className="landing-about-v2 landing-section-v2"><div className="about-v2-copy"><h2>Un lugar para disfrutar el juego <em>y superarte.</em></h2><p>Somos una academia de tenis de mesa que acompaña a cada jugador desde sus primeros golpes hasta sus nuevos desafíos. Entrena en un espacio cercano, organizado y diseñado para que aproveches cada sesión.</p><div className="about-v2-points"><article><BookOpen/><span><strong>Entrenamiento por nivel</strong><small>Clases para avanzar a tu ritmo</small></span></article><article><Users/><span><strong>Acompañamiento cercano</strong><small>Profesores atentos a tu progreso</small></span></article><article><Trophy/><span><strong>Retos durante el año</strong><small>Comunidad y competencia en la mesa</small></span></article></div><button type="button" onClick={()=>setModal("registration")} className="about-v2-cta">Matricúlate en la academia</button></div><div className="about-v2-photo"><div className="about-v2-img"/><div className="about-v2-ball"/></div></section>
-    <section id="beneficios" className="landing-benefits-v2"><div className="landing-section-v2"><div className="section-v2-heading"><h2>Todo lo que necesitas<br/>para seguir <em>mejorando.</em></h2><p>Un camino claro para aprender, practicar y disfrutar cada punto.</p></div><div className="benefit-grid-v2">{benefits.map(({icon:Icon,n,title,text})=><article className="benefit-card-v2" key={n}><span className="benefit-icon-v2"><Icon size={23}/></span><small>ETAPA {n}</small><h3>{title}</h3><p>{text}</p><div className="benefit-card-foot"><span>{n}</span><i/></div></article>)}</div></div></section>
-    <section id="equipo" className="landing-team-v2 landing-section-v2"><div className="section-v2-heading"><h2>El equipo que impulsa<br/><em>tu siguiente nivel.</em></h2><p>Conoce a los entrenadores que te acompañan dentro y fuera de la mesa.</p></div><div className="team-grid-v2">{(teachers.length?teachers:["Carlos Mendoza","Raúl Peña","Lucía Salazar"]).slice(0,3).map((name,i)=><article className="team-card-v2" key={name}><div className="team-photo-v2" style={{backgroundImage:`url(${portraits[i]})`}}/><div><small className="team-role">ENTRENADOR</small><h3>{name}</h3><p>{["Técnica y control","Táctica de juego","Desarrollo deportivo"][i]}</p><span className="team-level-v2">Básico · Intermedio · Avanzado</span></div></article>)}</div></section>
+
+    <section id="academia" className="club-section club-intro">
+      <div className="club-intro-media">
+        <img src={slides[2].image} alt="Paleta y pelota sobre una mesa de entrenamiento" loading="lazy" />
+      </div>
+      <div className="club-intro-copy">
+        <h2>Entrena a tu nivel.</h2>
+        <p>En {academyName} compartimos mesa desde el primer saque. Elige un nivel para conocer qué se trabaja en clase.</p>
+        <div className="club-levels" role="group" aria-label="Nivel de entrenamiento">
+          {levels.map((item, index) => (
+            <button key={item.name} type="button" aria-pressed={index === level}
+              aria-controls="level-description" onClick={() => setLevel(index)}>{item.name}</button>
+          ))}
+        </div>
+        <p id="level-description" aria-live="polite">{levels[level].description}</p>
+        <button type="button" className="club-action" onClick={() => setModal("registration")}>Matricúlate en la academia</button>
+      </div>
+    </section>
+
+    <section id="beneficios" className="club-practice">
+      <div className="club-section club-practice-layout">
+        <h2>Lo que te llevas<br />de cada sesión.</h2>
+        <dl>{benefits.map(({title, text}) => (
+          <div key={title}><dt>{title}</dt><dd>{text}</dd></div>
+        ))}</dl>
+      </div>
+    </section>
+
+    <section id="equipo" className="club-section club-staff">
+      <h2>El equipo técnico.</h2>
+      <div className="club-roster">
+        {(teachers.length ? teachers : Object.keys(demoCoaches)).map((name) => {
+          const profile = demoCoaches[name];
+          return <figure key={name}>
+            <div className="club-portrait">
+              {profile ? <img loading="lazy" alt="" src={`https://images.unsplash.com/${profile.portrait}?auto=format&fit=crop&w=700&q=82`}/>
+                : <span aria-hidden="true">{name.split(" ").map(part => part[0]).slice(0,2).join("")}</span>}
+            </div>
+            <figcaption><h3>{name}</h3>{profile && <p>{profile.specialty}</p>}</figcaption>
+          </figure>;
+        })}
+      </div>
+    </section>
     <section id="ranking" className="landing-ranking-v2"><div className="ranking-v2-orb"/><div className="ranking-v2-copy"><h2>{ranking?<>Ranking Relámpago<br/><em>de la Academia</em></>:<>Consulta el ranking<br/><em>de la academia</em></>}</h2><p>{ranking?"Revisa los detalles y asegura tu lugar en el próximo encuentro.":"Revisa la tabla de posiciones y descubre cómo avanza la comunidad de la academia."}</p><a href="/rankings" className="ranking-v2-link">Ver tabla de posiciones</a></div>{ranking?<article className="ranking-v2-card"><div className="ranking-status-v2">Inscripción abierta</div><h3>{ranking.title}</h3><div className="ranking-facts-v2"><p><CalendarDays size={17}/><span><small>Fecha y hora</small><strong>{new Date(ranking.startsAt).toLocaleString("es-PE",{dateStyle:"medium",timeStyle:"short"})}</strong></span></p><p><Activity size={17}/><span><small>Sede</small><strong>{ranking.venue}</strong></span></p></div><div className="ranking-prices-v2"><div><small>Tarifa estudiante</small><strong>S/ {Number(ranking.studentPrice).toFixed(2)}</strong></div><div><small>Tarifa externa</small><strong>S/ {Number(ranking.publicPrice).toFixed(2)}</strong></div></div><div className="ranking-card-footer-v2"><span>Aforo máximo: {ranking.capacity} jugadores</span><button type="button" onClick={()=>setModal("ranking")} className="ranking-v2-primary">Ver detalles e inscribirme</button></div></article>:<div className="ranking-v2-empty"><Trophy size={26}/><strong>Pronto habrá un nuevo ranking</strong><span>La tabla de posiciones de la academia está disponible para consulta.</span></div>}</section>
     <footer className="landing-footer-v2"><Link href="#inicio" className="landing-brand-v2"><span><Activity size={18}/></span>{academyName}</Link><span>Tenis de mesa, comunidad y progreso.</span><Link href="/login">Acceso para alumnos y profesores</Link></footer>
-    {modal&&<div className="landing-modal-backdrop" onMouseDown={(e)=>{if(e.target===e.currentTarget)setModal(null)}} role="presentation"><section className="landing-modal" role="dialog" aria-modal="true" aria-label={modal==="registration"?"Matricularme":"Inscripción al ranking"}><button className="landing-modal-close" onClick={()=>setModal(null)} aria-label="Cerrar"><X size={20}/></button><iframe title={modal==="registration"?"Formulario de matrícula":"Inscripción al ranking"} src={modal==="registration"?"/registro":`/ranking/${ranking?.id}`} /></section></div>}
+    {modal && (
+      <Modal className={`public-form-dialog ${modal === "registration" ? "enroll" : "ranking"}`}
+        label={modal === "registration" ? "Matricularme" : "Inscripción al ranking"}
+        onDismiss={() => setModal(null)}>
+        <button type="button" className="dialog-exit" onClick={() => setModal(null)} aria-label="Cerrar">
+          <X size={18}/>
+        </button>
+        {modal === "registration" ? <RegistrationForm embedded/> : ranking && <RankingRegistration rankingId={ranking.id} embedded/>}
+      </Modal>
+    )}
   </main>;
 }

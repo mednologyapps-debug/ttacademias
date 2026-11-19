@@ -1,5 +1,8 @@
 "use client";
 
+import Modal from "@/components/modal";
+
+import MemberWorkspace from "@/components/member-workspace";
 import { useEffect, useState } from "react";
 import {
   Activity,
@@ -19,7 +22,6 @@ import {
   LogOut,
   MapPin,
   Medal,
-  Menu,
   MoreVertical,
   Settings,
   ShieldCheck,
@@ -63,7 +65,7 @@ export default function StudentPortal() {
   const [registered, setRegistered] = useState(true);
   const [paymentView, setPaymentView] = useState<"history" | "renew" | null>(null);
   const [toast, setToast] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
+
 
   useEffect(() => { fetch("/api/public/academy").then((response) => response.json()).then((data) => { if (data.academy?.name) setAcademyBrand({ name: data.academy.name, logoUrl: data.academy.logoUrl || "" }); }).catch(() => undefined); }, []);
 
@@ -74,7 +76,7 @@ export default function StudentPortal() {
 
   function navigate(next: Tab) {
     setTab(next);
-    setMenuOpen(false);
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -84,40 +86,25 @@ export default function StudentPortal() {
   }
 
   return (
-    <main className="app-shell">
-      <header className="topbar">
-        <button className="desktop-menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menú"><Menu size={20}/></button>
-        {tab === "Inicio" ? (
-          <div className="welcome-block">
-            <div className="avatar avatar-initial">M</div>
-            <div>
-              <p className="hello">Hola, Mateo</p>
-              <p className="location"><MapPin size={15} /> Sede Miraflores</p>
-            </div>
-          </div>
-        ) : (
-          <div className="brand">
-            <div className="brand-mark">{academyBrand.logoUrl ? <img src={academyBrand.logoUrl} alt="" /> : <Activity size={20} strokeWidth={2.6} />}</div>
-            <span>{academyBrand.name}</span>
-          </div>
-        )}
-        <button className="icon-button notification-button" aria-label="Notificaciones" onClick={() => showToast("No tienes nuevas notificaciones")}>
-          <Bell size={20} />
-          <span className="notification-dot" />
-        </button>
-      </header>
-      <aside className="student-desktop-sidebar" aria-label="Navegación del estudiante">
-        <div className="student-sidebar-brand"><span>{academyBrand.logoUrl ? <img src={academyBrand.logoUrl} alt=""/> : <Activity size={19}/>}</span><strong>{academyBrand.name}</strong></div>
-        <small>MI ESPACIO</small>
-        {tabs.map(({label,icon:Icon})=><button key={label} className={tab===label?"selected":""} onClick={()=>navigate(label)}><Icon size={18}/><span>{label}</span></button>)}
-        <button className="student-sidebar-logout" onClick={async()=>{await fetch("/api/auth/logout",{method:"POST"});window.location.assign("/login")}}><LogOut size={18}/><span>Cerrar sesión</span></button>
-      </aside>
-      {menuOpen && <><button className="desktop-menu-scrim" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)}/><aside className="desktop-menu-panel"><div className="desktop-menu-title"><strong>{academyBrand.name}</strong><button onClick={() => setMenuOpen(false)} aria-label="Cerrar menú"><X size={18}/></button></div>{tabs.map(({label,icon:Icon})=><button key={label} className={tab===label?"selected":""} onClick={()=>navigate(label)}><Icon size={18}/>{label}</button>)}</aside></>}
-
-      <section className="content" key={tab}>
+    <MemberWorkspace
+      academy={academyBrand.name}
+      logo={academyBrand.logoUrl}
+      roleLabel="Alumno"
+      active={tab}
+      destinations={tabs.map(item => ({ ...item, key: item.label }))}
+      onSelect={navigate}
+      onLogout={async () => {
+        const response = await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
+        if (response?.ok) window.location.replace("/login");
+        else showToast("No se pudo cerrar la sesión. Inténtalo de nuevo.");
+      }}
+      headerAction={<button className="member-header-button" aria-label="Notificaciones"
+        onClick={() => showToast("No tienes nuevas notificaciones")}><Bell size={19} /></button>}
+    >
+      <section className="student-work" key={tab}>
         {tab === "Inicio" && (
           <>
-            <div className="mobile-welcome"><h1>Tu espacio para mejorar.</h1><p>Todo lo de tu academia, a un toque.</p></div>
+            <div className="page-title"><h1>Hola, Mateo</h1><p><MapPin size={16} /> Sede Miraflores</p></div>
             {noticeVisible && <section className="notice-card" aria-label="Aviso de sede">
               <div className="notice-icon"><Activity size={18} /></div>
               <div className="notice-copy"><p className="notice-eyebrow">AVISO DE SEDE</p><p>Tu clase de hoy iniciará 15 minutos más tarde (<strong>6:15 PM</strong>) por desinfección y acondicionamiento reglamentario de mesas.</p></div>
@@ -125,7 +112,7 @@ export default function StudentPortal() {
             </section>}
 
             <section className="section-block class-section">
-              <div className="section-heading"><h2>Mi Clase de Hoy</h2><span className="muted">Miércoles, 18 Nov</span></div>
+              <div className="section-heading"><h2>Mi clase de hoy</h2><span className="muted">Miércoles, 18 Nov</span></div>
               <article className="card class-card">
                 <div className="class-meta"><span className="time-pill"><span className="dot" />Hoy · 6:00 PM - 7:30 PM</span><span className="duration"><Clock3 size={15} />90 min</span></div>
                 <h3>Nivel Intermedio: Control de Saques &amp; Topspin</h3>
@@ -138,7 +125,7 @@ export default function StudentPortal() {
             </section>
 
             <section className="section-block membership-section">
-              <div className="section-heading"><h2>Membresía &amp; Facturación</h2><span className="status-badge">Activa</span></div>
+              <div className="section-heading"><h2>Mi membresía</h2><span className="status-badge">Activa</span></div>
               <article className="card membership-card">
                 <div className="membership-title"><div><h3>Plan Competitivo Mensual</h3><p className="subtle">Acceso total a sedes y mesas de práctica</p></div><strong className="price">S/. 280.00 <small>/ mes</small></strong></div>
                 <div className="due-row"><span>Vence el 20 Nov 2026</span><strong>Quedan 5 días</strong></div>
@@ -148,7 +135,7 @@ export default function StudentPortal() {
             </section>
 
             <section className="section-block last-section ranking-section">
-              <div className="section-heading"><h2>Próximo Torneo</h2></div>
+              <div className="section-heading"><h2>Próximo ranking</h2></div>
               <article className="card tournament-card compact-tournament">
                 <div className="tournament-top"><div><span className="eyebrow">RANKING SEMANAL #14</span><h3>Torneo Relámpago Apertura</h3></div><div className="trophy-badge"><Trophy size={20} /></div></div>
                 <p className="subtle">Sábado 21 Nov • 4:00 PM (4 horas garantizadas)</p>
@@ -164,14 +151,9 @@ export default function StudentPortal() {
         {tab === "Mi Perfil" && <ProfileView onToast={showToast} onPaymentHistory={() => setPaymentView("history")} academyName={academyBrand.name} />}
       </section>
 
-      <nav className="bottom-nav" aria-label="Navegación principal">
-        {tabs.map(({ label, icon: Icon }) => <button key={label} className={`nav-item ${tab === label ? "active" : ""}`} onClick={() => navigate(label)} aria-current={tab === label ? "page" : undefined}>
-          <Icon size={21} strokeWidth={tab === label ? 2.5 : 2.1} /><span>{label}</span>
-        </button>)}
-      </nav>
       {toast && <div className="toast" role="status"><CheckCircle2 size={18} />{toast}<button aria-label="Cerrar mensaje" onClick={() => setToast("")}><X size={17} /></button></div>}
       {paymentView && <PaymentsModal mode={paymentView} onClose={() => setPaymentView(null)} onContinue={() => { setPaymentView(null); showToast("El pago se podrá completar al conectar la pasarela de la academia"); }} />}
-    </main>
+    </MemberWorkspace>
   );
 }
 
@@ -180,7 +162,7 @@ function ClassesView({ onToast, attendance, onMarkAttendance }: { onToast: (mess
   const [filter, setFilter] = useState("Próximas (3)");
   return <>
     <div className="page-title"><h1>Mis Clases</h1><p>Noviembre 2026 • 8 sesiones restantes en tu plan</p></div>
-    <section className="card week-card">
+    <div className="student-calendar-column"><section className="card week-card">
       <div className="week-heading"><h2>Semana 47</h2><div><button className="calendar-arrow" aria-label="Semana anterior" onClick={() => onToast("Mostrando la semana anterior")}><ChevronLeft size={18} /></button><button className="calendar-arrow" aria-label="Semana siguiente" onClick={() => onToast("Mostrando la semana siguiente")}><ChevronRight size={18} /></button></div></div>
       <div className="week-days">{[{ d: "L", n: 16 }, { d: "M", n: 17 }, { d: "X", n: 18 }, { d: "J", n: 19 }, { d: "V", n: 20 }, { d: "S", n: 21 }, { d: "D", n: 22 }].map((day) => <button key={day.n} className={`day-cell ${selectedDay === day.n ? "selected" : ""}`} onClick={() => setSelectedDay(day.n)}><span>{day.d}</span><strong>{day.n}</strong>{[18, 20, 21].includes(day.n) && <i />}</button>)}</div>
     </section>
@@ -192,6 +174,7 @@ function ClassesView({ onToast, attendance, onMarkAttendance }: { onToast: (mess
       <div className="teacher-row"><div className="avatar avatar-coach large">CM</div><div className="teacher-info"><strong>Prof. Carlos Mendoza</strong><span><Star size={15} fill="currentColor" /> 4.9 <i>(128 clases)</i></span></div><span className={`attendance-status ${attendance === "no" ? "declined" : ""}`}>{attendance === "yes" ? "Asistiré" : attendance === "no" ? "No asistiré" : "Sin confirmar"}</span></div>
       <div className="attendance-actions class-attendance-actions">{attendance === "yes" ? <button className="attendance-confirmed" disabled><CheckCircle2 size={17}/> Asistencia confirmada</button> : attendance === "no" ? <button className="attendance-declined" disabled>No asistiré</button> : <><button className="button button-success" onClick={() => onMarkAttendance("yes")}><CheckCircle2 size={16} />Sí, asistiré</button><button className="button button-soft" onClick={() => onMarkAttendance("no")}>No asistiré</button></>}</div>
     </article>
+    </div>
     <section className="section-block upcoming-block"><div className="section-heading"><h2>Próximas Sesiones</h2><button className="text-link" onClick={() => onToast("Mostrando todas tus sesiones")}>Ver más completo</button></div>
       <div className="session-list">{sessions.map((session) => <article className="card session-card" key={session.title}><div className="date-tile"><span>{session.day}</span><strong>{session.date}</strong></div><div className="session-info"><strong>{session.title}</strong><p>{session.time} • {session.coach}</p></div><div className={`avatar avatar-small ${session.tone}`}>{session.initials}</div><button className="more-button" aria-label={`Más opciones para ${session.title}`} onClick={() => onToast("Opciones de sesión") }><MoreVertical size={20} /></button></article>)}</div>
     </section>
@@ -231,7 +214,7 @@ function RankingsView({ onToast, academyName }: { onToast: (message: string) => 
         {registered ? <div className="ranking-registered-panel"><CheckCircle2 size={19} /><div><strong>Tu cupo está confirmado</strong><span>El profesor publicará los grupos antes del inicio.</span></div></div> : paid ? <button className="button button-primary button-full group-button" onClick={confirmRegistration}>Confirmar inscripción</button> : <button className="button button-primary button-full group-button" onClick={() => setPaying(true)}>Pagar {event.memberPrice} para inscribirme</button>}
         {registered && <><div className="group-heading"><h3><span className="dot" /> Grupo asignado</h3><span>5 jugadores</span></div><div className="group-list">{[{ n: 1, init: "VC", name: "Vanessa Cárdenas", points: "1,780 pts" }, { n: 2, init: "MG", name: "Mateo Gonzales (Tú)", points: "1,420 pts", self: true }, { n: 3, init: "NT", name: "Nicole Torres", points: "1,280 pts" }, { n: 4, init: "DV", name: "Diego Vásquez", points: "1,150 pts" }, { n: 5, init: "CR", name: "Carlos Ramos", points: "1,090 pts" }].map((player) => <div className={`group-player ${player.self ? "self" : ""}`} key={player.n}><span className="group-number">{player.n}</span><div className="avatar avatar-tiny">{player.init}</div><strong>{player.name}</strong><b>{player.points}</b></div>)}</div></>}
       </article><aside className="card ranking-steps-card"><span className="eyebrow">¿CÓMO PARTICIPAR?</span><ol><li className="done"><b>1</b><span><strong>Elige un ranking</strong><small>Revisa fecha, sede y cupos.</small></span></li><li className={paid ? "done" : "current"}><b>2</b><span><strong>Paga tu tarifa</strong><small>Precio especial para estudiantes.</small></span></li><li className={registered ? "done" : "current"}><b>3</b><span><strong>Confirma tu inscripción</strong><small>Tu cupo queda reservado al confirmar.</small></span></li></ol><p>Las inscripciones confirmadas no se pueden retirar.</p></aside></div>
-      {paying && <div className="modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setPaying(false); }}><section className="payment-modal" role="dialog" aria-modal="true" aria-labelledby="ranking-pay-title"><div className="modal-heading"><div><span className="login-eyebrow">PAGO DE RANKING</span><h2 id="ranking-pay-title">Completar inscripción</h2></div><button className="icon-button" aria-label="Cerrar" onClick={() => setPaying(false)}><X size={18} /></button></div><div className="renew-summary"><span>{event.title}</span><strong>{event.memberPrice}</strong><small>Tarifa de estudiante · Mateo Gonzales</small></div><p className="payment-note">La pasarela de pagos aún no está conectada. Para probar el flujo, puedes simular una aprobación.</p><button className="button button-primary button-full modal-pay-button" onClick={() => { setPaidIds((current) => [...current, event.id]); setPaying(false); onToast("Pago de demostración aprobado. Ya puedes confirmar tu inscripción."); }}>Simular pago aprobado</button></section></div>}
+      {paying && <Modal className="payment-modal" labelledBy="ranking-pay-title" onDismiss={() => setPaying(false)}><div className="modal-heading"><div><span className="login-eyebrow">PAGO DE RANKING</span><h2 id="ranking-pay-title">Completar inscripción</h2></div><button className="icon-button" aria-label="Cerrar" onClick={() => setPaying(false)}><X size={18} /></button></div><div className="renew-summary"><span>{event.title}</span><strong>{event.memberPrice}</strong><small>Tarifa de estudiante · Mateo Gonzales</small></div><p className="payment-note">La pasarela de pagos aún no está conectada. Para probar el flujo, puedes simular una aprobación.</p><button className="button button-primary button-full modal-pay-button" onClick={() => { setPaidIds((current) => [...current, event.id]); setPaying(false); onToast("Pago de demostración aprobado. Ya puedes confirmar tu inscripción."); }}>Simular pago aprobado</button></Modal>}
     </>}
   </>;
 }
@@ -255,8 +238,7 @@ function ProfileView({ onToast, onPaymentHistory, academyName }: { onToast: (mes
 }
 
 function PaymentsModal({ mode, onClose, onContinue }: { mode: "history" | "renew"; onClose: () => void; onContinue: () => void }) {
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <section className="payment-modal" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title">
+  return <Modal className="payment-modal" labelledBy="payment-modal-title" onDismiss={onClose}>
       <div className="modal-heading"><div><span className="login-eyebrow">MEMBRESÍA</span><h2 id="payment-modal-title">{mode === "history" ? "Historial de pagos" : "Renovar plan"}</h2></div><button className="icon-button" aria-label="Cerrar" onClick={onClose}><X size={18} /></button></div>
       {mode === "history" ? <div className="payment-history-list">{[
         { date: "20 oct 2026", detail: "Plan Competitivo Mensual", amount: "S/. 280.00", status: "Pagado" },
@@ -264,6 +246,5 @@ function PaymentsModal({ mode, onClose, onContinue }: { mode: "history" | "renew
         { date: "20 ago 2026", detail: "Plan Competitivo Mensual", amount: "S/. 280.00", status: "Pagado" },
       ].map((payment) => <article className="payment-history-item" key={payment.date}><div className="payment-icon"><CreditCard size={17} /></div><div className="payment-description"><strong>{payment.detail}</strong><span>{payment.date}</span></div><div className="payment-amount"><strong>{payment.amount}</strong><span className="status-badge">{payment.status}</span></div></article>)}</div> : <><div className="renew-summary"><span>Plan Competitivo Mensual</span><strong>S/. 280.00</strong><small>Próximo periodo: 20 nov – 20 dic 2026</small></div><p className="payment-note">El pago quedará pendiente hasta que la academia conecte su pasarela.</p><button className="button button-primary button-full modal-pay-button" onClick={onContinue}>Continuar al pago</button></>}
       <button className="modal-close-link" onClick={onClose}>Cerrar</button>
-    </section>
-  </div>;
+  </Modal>;
 }

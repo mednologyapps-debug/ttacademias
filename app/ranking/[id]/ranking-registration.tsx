@@ -13,7 +13,7 @@ const DEMO_STUDENTS: AcademyStudent[] = [
   { dni: "10000003", name: "Diego Vásquez" }, { dni: "10000004", name: "Nicole Torres" },
 ];
 
-export default function RankingRegistration({ rankingId }: { rankingId: string }) {
+export default function RankingRegistration({ rankingId, embedded = false }: { rankingId: string; embedded?: boolean }) {
   const [ranking, setRanking] = useState<Ranking | null>(null);
   const [academyStudents, setAcademyStudents] = useState<AcademyStudent[]>(DEMO_STUDENTS);
   const [loading, setLoading] = useState(true);
@@ -33,14 +33,14 @@ export default function RankingRegistration({ rankingId }: { rankingId: string }
   const pendingParticipant = ranking?.participants.find((participant) => participant.id === pendingParticipantId);
 
   useEffect(() => {
-    fetch("/api/public/academy").then((response) => response.json()).then((data) => { if (data.academy?.name) setAcademyName(data.academy.name); if (data.academy?.logoUrl) setAcademyLogo(data.academy.logoUrl); }).catch(() => undefined);
+    if (!embedded) fetch("/api/public/academy").then((response) => response.json()).then((data) => { if (data.academy?.name) setAcademyName(data.academy.name); if (data.academy?.logoUrl) setAcademyLogo(data.academy.logoUrl); }).catch(() => undefined);
     try {
       const stored = JSON.parse(window.localStorage.getItem(STORE_KEY) || "[]") as Ranking[];
       const current = stored.find((entry) => entry.id === rankingId) || null;
       setRanking(current);
       const students = JSON.parse(window.localStorage.getItem(STUDENTS_KEY) || "null") as AcademyStudent[] | null;
       if (Array.isArray(students)) setAcademyStudents(students);
-      const requestedPayment = new URLSearchParams(window.location.search).get("pay");
+      const requestedPayment = !embedded && new URLSearchParams(window.location.search).get("pay");
       if (requestedPayment) {
         const participant = current?.participants.find((entry) => entry.id === requestedPayment && !entry.paid);
         if (!participant) setInvalidPaymentLink(true);
@@ -50,7 +50,7 @@ export default function RankingRegistration({ rankingId }: { rankingId: string }
       }
     } catch { setRanking(null); }
     setLoading(false);
-  }, [rankingId]);
+  }, [rankingId, embedded]);
 
   function continueToPayment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,15 +82,17 @@ export default function RankingRegistration({ rankingId }: { rankingId: string }
     setRanking(next); setStep("done");
   }
 
-  if (loading) return <main className="ranking-public-page" aria-label="Cargando ranking"><div className="skeleton ranking-public-skeleton-header"/><div className="skeleton ranking-public-skeleton-card"/></main>;
-  if (!ranking) return <main className="ranking-public-page"><section className="ranking-public-card ranking-public-unavailable"><span className="ranking-public-mark"><Trophy size={20} /></span><h1>Ranking no disponible</h1><p>El enlace puede haber vencido o el ranking todavía no está publicado.</p></section></main>;
-  if (invalidPaymentLink) return <main className="ranking-public-page"><section className="ranking-public-card ranking-public-unavailable"><span className="ranking-public-mark"><Trophy size={20} /></span><h1>Enlace de pago no disponible</h1><p>Solicita a la academia que te envíe un nuevo enlace de pago.</p></section></main>;
+  const Page = embedded ? "div" : "main";
+  const pageClass = embedded ? "embedded-ranking" : "ranking-public-page";
+  if (loading) return <Page className={pageClass} aria-label="Cargando ranking"><div className="skeleton ranking-public-skeleton-header"/><div className="skeleton ranking-public-skeleton-card"/></Page>;
+  if (!ranking) return <Page className={pageClass}><section className="ranking-public-card ranking-public-unavailable"><span className="ranking-public-mark"><Trophy size={20} /></span><h1>Ranking no disponible</h1><p>El enlace puede haber vencido o el ranking todavía no está publicado.</p></section></Page>;
+  if (invalidPaymentLink) return <Page className={pageClass}><section className="ranking-public-card ranking-public-unavailable"><span className="ranking-public-mark"><Trophy size={20} /></span><h1>Enlace de pago no disponible</h1><p>Solicita a la academia que te envíe un nuevo enlace de pago.</p></section></Page>;
   const displayName = pendingParticipant?.name || participantName;
   const displayKind = pendingParticipant?.kind || participantKind;
   const displayPrice = ranking ? displayKind === "Alumno" ? ranking.studentPrice : ranking.publicPrice : 0;
-  return <main className="ranking-public-page"><header className="ranking-public-header"><span className="ranking-public-mark">{academyLogo ? <img src={academyLogo} alt=""/> : <Activity size={19} />}</span><strong>{academyName}</strong><span className="ranking-public-header-tag">Inscripciones</span></header><section className="ranking-public-shell">
-    <div className="ranking-public-intro"><span className="ranking-public-eyebrow"><Trophy size={14} /> RANKING DE LA ACADEMIA</span><h1>{ranking.title}</h1><p>Compite, suma puntos y comparte una jornada de tenis de mesa.</p><div className="ranking-public-facts"><span><CalendarDays size={16} />{new Date(`${ranking.date}T12:00:00`).toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span><span><Clock3 size={16} />{ranking.time}</span><span><MapPin size={16} />{ranking.venue}</span></div><div className="ranking-public-capacity"><div><span><Users size={15} /> Cupos disponibles</span><strong>{remaining} / {ranking.capacity}</strong></div><i><b style={{ width: `${Math.min(100, ranking.participants.length / ranking.capacity * 100)}%` }} /></i></div></div>
+  return <Page className={pageClass}>{!embedded && <header className="ranking-public-header"><span className="ranking-public-mark">{academyLogo ? <img src={academyLogo} alt=""/> : <Activity size={19} />}</span><strong>{academyName}</strong><span className="ranking-public-header-tag">Inscripciones</span></header>}<section className="ranking-public-shell">
+    <div className="ranking-public-intro">{!embedded && <span className="ranking-public-eyebrow"><Trophy size={14} /> RANKING DE LA ACADEMIA</span>}<h1>{ranking.title}</h1><p>Compite, suma puntos y comparte una jornada de tenis de mesa.</p><div className="ranking-public-facts"><span><CalendarDays size={16} />{new Date(`${ranking.date}T12:00:00`).toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span><span><Clock3 size={16} />{ranking.time}</span><span><MapPin size={16} />{ranking.venue}</span></div><div className="ranking-public-capacity"><div><span><Users size={15} /> Cupos disponibles</span><strong>{remaining} / {ranking.capacity}</strong></div><i><b style={{ width: `${Math.min(100, ranking.participants.length / ranking.capacity * 100)}%` }} /></i></div></div>
     <div className="ranking-public-form-wrap">{step === "done" ? <div className="ranking-public-success"><span><CheckCircle2 size={25} /></span><h2>¡Inscripción confirmada!</h2><p>{displayName}, tu pago de <strong>S/. {displayPrice.toFixed(2)}</strong> quedó registrado en esta demostración.</p><small>La academia ya puede verte en la lista de participantes.</small></div> : step === "payment" ? <div className="ranking-public-payment"><span className="ranking-public-eyebrow">{pendingParticipantId ? "PAGO DE INSCRIPCIÓN" : "PASO 2 DE 2"}</span><h2>{pendingParticipantId ? "Completa tu pago" : "Confirma tu inscripción"}</h2><p>{pendingParticipantId ? "La academia registró tus datos. Solo falta pagar para confirmar tu cupo." : "Revisa tus datos y completa el pago para reservar tu cupo."}</p>{notice && <div className="ranking-public-alert">{notice}</div>}<div className="ranking-public-receipt"><span>{displayName || "Participante"} <small>{displayKind} · DNI {pendingParticipant?.dni || dni}</small></span><strong>S/. {displayPrice.toFixed(2)}</strong><small>Inscripción a {ranking.title}</small></div><div className="ranking-demo-payment-note">Demostración local: no se realizará un cobro real.</div><button className="ranking-public-primary" onClick={completeDemoPayment}>Pagar y confirmar inscripción</button>{!pendingParticipantId && <button className="ranking-public-back" onClick={() => setStep("form")}>Volver a mis datos</button>}</div> : <form className="ranking-public-form" onSubmit={continueToPayment}><span className="ranking-public-eyebrow">PASO 1 DE 2</span><h2>Inscríbete al ranking</h2><p>Ingresa tu DNI para validar automáticamente tu tarifa.</p>{notice && <div className="ranking-public-alert">{notice}</div>}<label>DNI<input required inputMode="numeric" maxLength={8} pattern="[0-9]{8}" value={dni} onChange={(event) => { setDni(event.target.value.replace(/\D/g, "").slice(0, 8)); setExternalName(""); setNotice(""); }} placeholder="8 dígitos" /></label>{/^\d{8}$/.test(dni) && (matchedStudent ? <div className="ranking-dni-match public-match"><CheckCircle2 size={16} /><span><strong>{matchedStudent.name}</strong><small>Alumno reconocido · tarifa de academia</small></span></div> : <><label>Nombre y apellido<input required value={externalName} onChange={(event) => setExternalName(event.target.value)} placeholder="Ej. Carlos Ramos" /></label><div className="ranking-external-note">No encontramos este DNI en la academia. Se aplicará la tarifa para externos.</div></>)}<div className="ranking-public-price"><span>{matchedStudent ? "Tarifa alumno" : /^\d{8}$/.test(dni) ? "Tarifa externa" : "Ingresa tu DNI para ver la tarifa"}</span><strong>{/^\d{8}$/.test(dni) ? `S/. ${(matchedStudent ? ranking.studentPrice : ranking.publicPrice).toFixed(2)}` : "—"}</strong></div><button className="ranking-public-primary" disabled={remaining === 0 || !/^\d{8}$/.test(dni) || (!matchedStudent && !externalName.trim())}>Continuar al pago</button><small className="ranking-public-remaining">{remaining === 0 ? "Aforo completo" : `Quedan ${remaining} cupos disponibles`}</small></form>}</div>
     <footer className="ranking-public-footer">Inscripción sujeta a cupos disponibles · Pago de demostración</footer>
-  </section></main>;
+  </section></Page>;
 }

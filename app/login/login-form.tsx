@@ -56,7 +56,7 @@ export default function LoginForm() {
 
         <div className="login-divider"><span /> <small>O CONTINÚA CON</small> <span /></div>
         <button className="google-button" type="button" onClick={() => setMessage("El acceso con Google requiere configurar las credenciales OAuth de producción.")}><span className="google-g">G</span>Continuar con Google</button>
-        <p className="login-help">¿Primera vez aquí? <Link href="/registro">Crear cuenta</Link></p>
+        <p className="login-help">¿Primera vez aquí? <Link href="/registro/cuenta">Crear cuenta</Link></p>
       </div>
       <p className="login-copyright">© 2026 TT Academias <span>·</span> Hecho para seguir mejorando</p>
     </section>

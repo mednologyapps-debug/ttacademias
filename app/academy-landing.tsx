@@ -14,11 +14,6 @@ const slides = [
   { image: "https://images.unsplash.com/photo-1786025106050-1aa8eaa5ad3e?auto=format&fit=crop&w=2400&q=85", eyebrow: "TU JUEGO, A TU RITMO", title: <>Aprende. Entrena.<br/><em>Vuelve mejor.</em></>, text: "Encuentra tu nivel, construye técnica y disfruta cada sesión dentro y fuera de la mesa.", cta: "Quiero entrenar" },
   { image: "https://images.unsplash.com/photo-1708268418738-4863baa9cf72?auto=format&fit=crop&w=2400&q=85", eyebrow: "JUEGA CON LA COMUNIDAD", title: <>La próxima pelota<br/>puede ser <em>tuya.</em></>, text: "Participa en nuestros rankings, reta a otros jugadores y celebra cada avance.", cta: "Explorar rankings" },
 ];
-const levels = [
-  { name: "Básico", drill: "Control del primer golpe", description: "Empieza por el agarre, la posición y el control de la pelota. Aprende a sostener tus primeros intercambios." },
-  { name: "Intermedio", drill: "Saque y tercera pelota", description: "Varía el saque, lee el efecto y encadena golpes de derecha y revés con mayor precisión." },
-  { name: "Avanzado", drill: "Cambios de ritmo", description: "Trabaja la colocación, cambia el ritmo del punto y ensaya decisiones de partido." },
-];
 const benefits = [
   { art: "paddle", title: "Correcciones en la mesa", text: "Tu profesor observa el golpe y te ayuda a ajustar el movimiento en la siguiente pelota." },
   { art: "balls", title: "Práctica en grupo", text: "Alterna compañeros y aprende a responder a otros ritmos y estilos de juego." },
@@ -32,7 +27,6 @@ const demoCoaches: Record<string, { portrait: string; specialty: string }> = {
 
 export default function AcademyLanding({ academyName, logoUrl, primaryColor, ranking, teachers }: Props) {
   const [slide, setSlide] = useState(0); const [menuOpen, setMenuOpen] = useState(false); const [modal, setModal] = useState<"registration" | "ranking" | null>(null);
-  const [level, setLevel] = useState(0);
   const current = slides[slide];
   useEffect(() => {
     if (!menuOpen) return;
@@ -92,24 +86,12 @@ export default function AcademyLanding({ academyName, logoUrl, primaryColor, ran
     <section id="academia" className="club-section club-intro">
       <div className="club-intro-copy">
         <h2>Entrena a tu nivel.</h2>
-        <p>En {academyName} compartimos mesa desde el primer saque. Elige tu nivel para ver qué practicarás en clase.</p>
-        <div className="club-levels" role="group" aria-label="Nivel de entrenamiento">
-          {levels.map((item, index) => (
-            <button key={item.name} type="button" aria-pressed={index === level}
-              aria-controls="level-description" onClick={() => setLevel(index)}>{item.name}</button>
-          ))}
-        </div>
+        <p>Desde tus primeros saques hasta los partidos de competencia, en {academyName} encontrarás un grupo para practicar a tu ritmo.</p>
         <button type="button" className="club-action" onClick={() => setModal("registration")}>Matricúlate en la academia</button>
       </div>
       <div className="club-training-preview">
         <img src={slides[2].image} alt="Mesa de tenis preparada para la práctica" loading="lazy" />
-        <div id="level-description" aria-live="polite" aria-atomic="true">
-          <div key={level} className="club-drill">
-            <span>Nivel {levels[level].name.toLocaleLowerCase("es")}</span>
-            <h3>{levels[level].drill}</h3>
-            <p>{levels[level].description}</p>
-          </div>
-        </div>
+
       </div>
     </section>
 

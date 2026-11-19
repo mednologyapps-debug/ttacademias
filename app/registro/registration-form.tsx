@@ -1,57 +1,88 @@
 "use client";
 
-import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, UserRound } from "lucide-react";
-import AcademyBrand from "@/components/academy-brand";
+import { useEffect, useState, type FormEvent } from "react";
+import { enrollmentLevels, type Applicant, type Offer } from "@/lib/enrollment-types";
+import "./enrollment.css";
+
+const blank: Applicant = { firstName:"",lastName:"",dni:"",email:"",phone:"",birthDate:"" };
 
 export default function RegistrationForm({ embedded = false }: { embedded?: boolean }) {
-  const [showPassword, setShowPassword] = useState(false);
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const [step,setStep] = useState(1);
+  const [person,setPerson] = useState(blank);
+  const [options,setOptions] = useState<Offer[]>([]);
+  const [venue,setVenue] = useState("");
+  const [level,setLevel] = useState("");
+  const [slot,setSlot] = useState("");
+  const [loading,setLoading] = useState(true);
+  const [busy,setBusy] = useState(false);
+  const [message,setMessage] = useState("");
+  const [attempt,setAttempt] = useState(0);
+  useEffect(() => {
+    if (step !== 2) return;
+    const controller = new AbortController();
+    setLoading(true);
+    fetch("/api/public/enrollment",{signal:controller.signal,cache:"no-store"}).then(async res => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      const items: Offer[] = data.offers;
+      setOptions(items);
+      const venues = [...new Set(items.map(item => item.venue))];
+      setVenue(old => venues.length === 1 ? venues[0] : venues.includes(old) ? old : "");
+    }).catch(e => { if (!controller.signal.aborted) { setOptions([]); setMessage(e.message || "No se pudieron consultar los horarios."); } })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  },[step,attempt]);
+  const venues = [...new Set(options.map(o => o.venue))];
+  const available = options.filter(o => o.venue === venue);
+  const slots = available.filter(o => o.level === level);
+  function field(key: keyof Applicant) {
+    return { id:"enroll-"+key, name:key, value:person[key], required:true,
+      onChange:(e:React.ChangeEvent<HTMLInputElement>) => setPerson({...person,[key]:e.target.value}) };
+  }
+  async function submit(event: FormEvent) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    if (data.get("password") !== data.get("confirmPassword")) {
-      setMessage("Las contraseñas no coinciden.");
-      return;
-    }
-    const form = new FormData(event.currentTarget); setBusy(true); setMessage("");
+    setMessage("");
+    if (step === 1) { setStep(2); return; }
+    if (!slots.some(o => o.id === slot) || busy) return;
+    setBusy(true);
     try {
-      const response = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fullName: form.get("fullName"), email: form.get("email"), password: form.get("password"), dni: form.get("dni"), phone: form.get("phone") }) });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "No se pudo crear la cuenta.");
-      window.location.assign(result.redirect || "/");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo crear la cuenta."); }
+      const res = await fetch("/api/public/enrollment",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...person,offerId:slot})});
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 409) { setSlot(""); setLevel(""); setAttempt(n=>n+1); }
+        throw new Error(data.error);
+      }
+      setStep(3);
+    } catch(e) { setMessage(e instanceof Error ? e.message : "No se pudo enviar tu solicitud."); }
     finally { setBusy(false); }
   }
-
-  const Page = embedded ? "div" : "main";
-  return <Page className={embedded ? "public-enrollment" : "auth-page"}>
-    <section className={embedded ? undefined : "auth-card"}>
-      {!embedded && <>
-      <Link href="/login" className="back-link"><ArrowLeft size={16} /> Volver al inicio de sesión</Link>
-      <Link href="/" className="brand auth-brand"><AcademyBrand /></Link>
-      </>}
-      <div className="login-heading"><h2>{embedded ? "Matricularme" : "Empieza a entrenar."}</h2><p>Crea tu cuenta de estudiante para entrar a tu academia.</p></div>
-      <form className="login-form" onSubmit={handleSubmit}>
-        <label htmlFor="fullName">Nombre completo</label>
-        <div className="input-wrap"><UserRound size={18} /><input id="fullName" name="fullName" type="text" placeholder="Tu nombre y apellido" autoComplete="name" required /></div>
-        <label htmlFor="dni">DNI</label>
-        <div className="input-wrap"><ShieldCheck size={18} /><input id="dni" name="dni" type="text" inputMode="numeric" pattern="[0-9]{8}" maxLength={8} placeholder="8 dígitos" required /></div>
-        <label htmlFor="registerEmail">Correo electrónico</label>
-        <div className="input-wrap"><Mail size={18} /><input id="registerEmail" name="email" type="email" placeholder="nombre@correo.com" autoComplete="email" required /></div>
-        <label htmlFor="registerPassword">Contraseña</label>
-        <div className="input-wrap"><LockKeyhole size={18} /><input id="registerPassword" name="password" type={showPassword ? "text" : "password"} placeholder="Mínimo 10 caracteres" autoComplete="new-password" minLength={10} required /><button className="reveal-button" type="button" aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
-        <label htmlFor="confirmPassword">Confirma tu contraseña</label>
-        <div className="input-wrap"><LockKeyhole size={18} /><input id="confirmPassword" name="confirmPassword" type={showPassword ? "text" : "password"} placeholder="Repite tu contraseña" autoComplete="new-password" minLength={10} required /></div>
-        <button className="button button-primary login-submit" type="submit" disabled={busy}>{busy ? "Creando cuenta…" : "Crear cuenta"} {!busy && !embedded && <ArrowRight size={17} />}</button>
-        {message && <p className="login-message" role="status">{message}</p>}
-      </form>
-      <div className="login-divider"><span /><small>O REGÍSTRATE CON</small><span /></div>
-      <button className="google-button" type="button" onClick={() => setMessage("El registro con Google se activará al configurar la autenticación de la academia.")}><span className="google-g">G</span>Crear cuenta con Google</button>
-      <p className="login-help">¿Ya tienes una cuenta? <Link href="/login">Inicia sesión</Link></p>
-    </section>
-  </Page>;
+  const panel = <section className="enroll-form">
+    {step === 3 ? <div role="status"><h2>Solicitud recibida</h2><p>La administración de tu academia ya puede revisar tus datos y tu horario elegido.</p>
+      <p><strong>{level}</strong> · {slots.find(o=>o.id===slot)?.schedule} · {venue}</p></div> : <>
+    <h2>Matricularme</h2><p aria-live="polite">{step === 1 ? "1 de 2 · Datos personales" : "2 de 2 · Elige dónde y cuándo entrenar"}</p>
+    <form onSubmit={submit}>
+      {step === 1 ? <div className="enroll-fields">
+        <label>Nombres<input {...field("firstName")} autoComplete="given-name" maxLength={100} pattern=".*\S.*" /></label>
+        <label>Apellidos<input {...field("lastName")} autoComplete="family-name" maxLength={100} pattern=".*\S.*" /></label>
+        <label>DNI<input {...field("dni")} inputMode="numeric" pattern="[0-9]{8}" maxLength={8} placeholder="8 dígitos" /></label>
+        <label>Fecha de nacimiento<input {...field("birthDate")} type="date" min="1900-01-01" max={new Intl.DateTimeFormat("sv-SE",{timeZone:"America/Lima"}).format(new Date())} autoComplete="bday" /></label>
+        <label>Correo electrónico<input {...field("email")} type="email" autoComplete="email" maxLength={254} /></label>
+        <label>Celular<input {...field("phone")} type="tel" autoComplete="tel" maxLength={30} placeholder="987 654 321"
+          onInput={e => e.currentTarget.setCustomValidity(/^\+?[0-9 ()-]+$/.test(e.currentTarget.value) && /^\d{7,15}$/.test(e.currentTarget.value.replace(/\D/g,"")) ? "" : "Ingresa un celular válido.")}/></label>
+      </div> : loading ? <div className="enroll-skeleton skeleton" aria-label="Consultando horarios" /> : options.length ? <div className="enroll-choices">
+        {venues.length > 1 ? <label>Sede<select required value={venue} onChange={e=>{setVenue(e.target.value);setLevel("");setSlot("");}}>
+          <option value="">Elige una sede</option>{venues.map(v=><option key={v}>{v}</option>)}</select></label> : <p>Sede · <strong>{venue}</strong></p>}
+        <label>Nivel<select required value={level} disabled={!venue} onChange={e=>{setLevel(e.target.value);setSlot("");}}>
+          <option value="">Elige tu nivel</option>{enrollmentLevels.filter(l=>available.some(o=>o.level===l)).map(l=><option key={l}>{l}</option>)}</select></label>
+        <label>Horario<select required value={slot} disabled={!level} onChange={e=>setSlot(e.target.value)}>
+          <option value="">Elige un horario</option>{slots.map(o=><option key={o.id} value={o.id}>{o.schedule}</option>)}</select></label>
+      </div> : <>{!message && <p>La academia aún no ha publicado horarios de matrícula.</p>}
+        <button type="button" className="enroll-back" onClick={()=>{setMessage("");setAttempt(n=>n+1);}}>Volver a consultar</button></>}
+      {message && <p role="alert">{message}</p>}
+      <div className="enroll-actions">{step === 2 && <button type="button" className="enroll-back" disabled={busy} onClick={()=>{setMessage("");setStep(1);}}>Atrás</button>}
+        <button className="club-action" disabled={busy || (step === 2 && (loading || !slots.some(o=>o.id===slot)))}>{step === 1 ? "Siguiente" : busy ? "Enviando…" : "Enviar solicitud"}</button></div>
+    </form></>}
+  </section>;
+  return embedded ? panel : <main className="enroll-page"><Link href="/">Volver a la academia</Link>{panel}</main>;
 }

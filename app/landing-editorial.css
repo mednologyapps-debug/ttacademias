@@ -29,38 +29,13 @@
 .club-hero .hero-v2-controls { inset-inline:var(--club-gutter); }
 .club-hero .hero-v2-controls button { box-shadow:none; background:#071c32a8; }
 .club-section h2 { margin:0; font-weight:620; font-size:clamp(2.1rem,4.2vw,4rem); letter-spacing:-.063em; line-height:1.02; text-wrap:balance; }
-/* A lesson preview sits across the lower edge of the training photograph. */
 .club-intro {
   display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);
   align-items:center; gap:clamp(32px,6vw,96px); padding-block:clamp(52px,7vw,100px);
 }
 .club-intro-copy { max-width:32rem; }
-.club-intro-copy > p, .club-drill p { font-size:1.06rem; line-height:1.65; color:#465970; }
-.club-intro-copy > p { margin:20px 0 24px; }
-.club-levels { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:26px; }
-.club-levels button {
-  background:#fff; color:var(--club-ink); border:1px solid #c6d2df; border-radius:100px;
-  padding:10px 16px; min-height:44px; font:inherit; cursor:pointer;
-}
-.club-levels button[aria-pressed="true"] { color:#fff; border-color:var(--club-ink); background:var(--club-ink); }
-.club-training-preview {
-  padding:0 clamp(12px,2vw,32px) 18px 0; display:grid; isolation:isolate;
-  grid-template-columns:minmax(20px,1fr) minmax(0,5fr); grid-template-rows:auto auto auto;
-  background:radial-gradient(color-mix(in srgb,var(--brand) 24%,white) 1px,transparent 1.3px) right bottom / 11px 11px;
-}
-.club-training-preview img {
-  grid-area:1 / 1 / 3 / 3; width:100%; height:100%; min-height:270px; max-height:440px;
-  object-fit:cover; border-radius:22px; display:block;
-}
-.club-training-preview #level-description {
-  grid-area:2 / 2 / 4 / 3; margin:0 -12px 0 0; align-self:end; z-index:1;
-  background:white; border:1px solid #dce3ec; border-radius:14px; padding:clamp(18px,2.4vw,30px);
-  box-shadow:0 12px 28px #152e4c14;
-}
-.club-training-preview { grid-template-rows:minmax(185px,18vw) 50px auto; }
-.club-drill > span { display:inline-block; color:var(--club-accent); font-size:.9rem; font-weight:650; }
-.club-drill h3 { margin:7px 0; font-size:clamp(1.3rem,2vw,1.8rem); letter-spacing:-.035em; }
-.club-drill p { margin:0; font-size:1rem; }
+.club-intro-copy > p { margin:20px 0 24px; font-size:1.06rem; line-height:1.65; color:#465970; }
+.club-training-preview img { display:block; width:100%; aspect-ratio:1.7; object-fit:cover; border-radius:22px; }
 .club-practice {
   --practice-night:color-mix(in srgb,var(--brand) 13%,#081326);
   background:var(--practice-night); color:white;
@@ -117,11 +92,9 @@
 }
 .club-roster p { margin:7px 0 0; font-weight:500; font-size:1rem; }
 @media (prefers-reduced-motion:no-preference) {
-  .club-drill { animation:club-drill-in .22s ease-out; }
   .club-portrait img { transition:transform .4s ease; }
   @media(hover:hover) { .club-roster figure:hover img { transform:scale(1.035); } }
 }
-@keyframes club-drill-in { from { opacity:.4; transform:translateY(4px); } }
 @media(max-width:860px) {
   .club-nav { min-height:62px; }
   .club-nav-toggle { display:grid; place-items:center; width:44px;height:44px; border:0;border-radius:8px; background:transparent; color:var(--club-ink); }
@@ -138,7 +111,6 @@
   .club-intro { grid-template-columns:1fr; gap:26px; }
   .club-benefit-grid, .club-roster { grid-template-columns:1fr; }
   .club-roster figure { aspect-ratio:1; }
-  .club-training-preview img { min-height:0; }
   .club-benefit-grid article { padding:26px 20px; }
 
 }

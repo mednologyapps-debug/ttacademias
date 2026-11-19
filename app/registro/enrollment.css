@@ -1,0 +1,24 @@
+.enroll-page {min-height:100svh;background:#f2f5fa;display:grid;place-content:center;padding:18px;gap:16px}
+.enroll-page>a {color:var(--brand);font-weight:600}
+.enroll-form {box-sizing:border-box;padding:clamp(20px,4vw,34px);background:white;color:#14253a;border-radius:18px;max-width:580px}
+dialog.public-form-dialog.enroll {width:min(580px,100%)}
+.enroll-form h2 {font-size:1.7rem;margin:0 35px 6px 0;letter-spacing:-.04em}
+.enroll-form p {line-height:1.5;color:#495d72;margin:8px 0 16px}
+.enroll-fields {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.enroll-form label,.offer-editor label {display:grid;align-content:start;gap:6px;font-weight:600;font-size:.9rem}
+.enroll-form input,.enroll-form select,.offer-editor input,.offer-editor select {box-sizing:border-box;min-width:0;width:100%;min-height:44px;border:1px solid #c6d2df;border-radius:8px;padding:9px;background:white;color:#16283e;font:inherit;font-size:1rem}
+.enroll-choices {display:grid;gap:14px}
+.enroll-actions {display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-top:24px}
+.enroll-actions .club-action {padding:12px 20px;border:0;border-radius:8px;font:inherit;font-weight:650;cursor:pointer;background:var(--club-accent,var(--brand,#1554d1));color:white}
+.enroll-actions button:disabled {opacity:.5;cursor:default}
+.enroll-back {background:white;border:0;color:var(--brand);font-weight:600;padding:10px;cursor:pointer}
+.enroll-skeleton {height:130px;border-radius:10px;background:#edf2f7}
+.enroll-form [role=alert],.enroll-admin [role=alert] {color:#963620}
+.enroll-admin {padding:20px;margin-bottom:16px;min-width:0}
+.enroll-admin summary {font-size:1rem;font-weight:650;cursor:pointer}
+.enroll-admin .admin-table-wrap {margin-top:14px}
+.enroll-admin td {white-space:normal}
+.enroll-admin td small {display:block;margin-top:4px}
+.offer-editor {display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin-top:16px}
+.offer-editor label {flex:1 1 145px}
+@media(max-width:480px) {.enroll-fields {grid-template-columns:1fr;gap:12px}}

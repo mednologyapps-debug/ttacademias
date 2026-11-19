@@ -36,9 +36,10 @@ Ejecuta `npm run bootstrap:admin` una sola vez y elimina las variables `BOOTSTRA
 
 - `/`: portada pública del portal, con acceso e inscripción; si ya hay una sesión, dirige a la vista del rol.
 - `/estudiante`: portal privado del estudiante; asistencia, historial, membresía y ranking todavía usan datos de demostración.
-- `/login`, `/registro`, `/recuperar-clave`: login con cookie segura, registro de estudiante dentro del subdominio y cambio de contraseña mediante enlace de un solo uso. La recuperación requiere SMTP.
+- `/login`, `/registro/cuenta`, `/recuperar-clave`: login con cookie segura, registro de estudiante dentro del subdominio y cambio de contraseña mediante enlace de un solo uso. La recuperación requiere SMTP.
 - `/ranking/[id]`: inscripción pública por ranking de demostración; aún guarda datos del navegador.
-- `/admin`: panel de academia con persistencia real para identidad (nombre, logo y color del subdominio); las demás operaciones del panel siguen siendo locales.
+- `/registro` y «Matricularme» en la landing comparten la solicitud de matrícula de dos pasos. En **Cursos → Horarios abiertos para matrícula** se publican y retiran turnos por sede y nivel. Las solicitudes se consultan en **Alumnos → Solicitudes de matrícula**. Para actualizar una instalación MySQL existente, importa `database/migrations/001-enrollment.sql`. Las instalaciones nuevas ya incluyen ambas tablas en el esquema.
+- `/admin`: panel de academia con persistencia real para identidad (nombre, logo y color del subdominio); la oferta pública y las solicitudes de matrícula también se guardan en MySQL. Los demás módulos de demostración siguen siendo locales.
 - `/global-admin`: crear academias con su admin inicial, listar, suspender/activar y ver identidad/conteos.
 - `/profesor`: agenda real de clases asignadas, aceptar clase, proponer cambio de fecha y registrar asistencia.
 - `/api/health`, `/api/auth/*`, `/api/global/academies`, `/api/academy/settings`, `/api/teacher/classes*`: endpoints iniciales conectados a MySQL.

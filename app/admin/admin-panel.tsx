@@ -1,5 +1,11 @@
 "use client";
 
+import {StandingsTable} from "@/components/academy-standings";
+import {academyTable} from "@/lib/tournament";
+import TournamentPanel from "./tournament-panel";
+import CourseLedger, { AssignmentFields, type DraftFee } from "./course-ledger";
+import type { Finance } from "@/lib/course-finance";
+import type { Tournament, Move } from "@/lib/tournament";
 import EnrollmentPanel from "./enrollment-panel";
 import Modal from "@/components/modal";
 
@@ -66,6 +72,47 @@ export default function AdminPanel() {
   const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [rankings, setRankings] = useState<Ranking[]>(initialRankings);
   const [rankingsLoaded, setRankingsLoaded] = useState(false);
+  const [ops,setOps] = useState<Record<string,{revision:number;value:unknown}>>({});
+  const [opsReady,setOpsReady] = useState(false);
+  const [opsError,setOpsError] = useState("");
+  const [saving,setSaving] = useState(false);
+  const [editingTeacher,setEditingTeacher] = useState<string|null>(null);
+  const [fees,setFees] = useState<DraftFee[]>([]);
+  const terms=ops.finance?.value as Finance|undefined;
+  const finance:Finance={courses,teachers:rows.Profesores,contracts:terms?.contracts||[],receipts:terms?.receipts||[]};
+  function applyFinance(data:Finance) {
+    setCourses(data.courses);
+    setRows(old=>({...old,Profesores:data.teachers,Cursos:data.courses.map(courseToRow)}));
+  }
+  async function refreshOps() {
+    try {
+      const res=await fetch("/api/academy/operations",{cache:"no-store"});
+      const data=await res.json(); if(!res.ok)throw Error(data.error);
+      setOps(data);if(data.finance)applyFinance(data.finance.value);setOpsReady(true);setOpsError("");
+    }catch {setOpsReady(false);setOpsError("No se pudieron cargar los honorarios y resultados guardados.");}
+  }
+  useEffect(()=>{void refreshOps();},[]);
+  async function persist(key:string,body:{value?:Finance;action?:Move}) {
+    if(!opsReady || saving) return false;
+    setSaving(true);
+    try {
+      const res=await fetch("/api/academy/operations",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key,revision:ops[key]?.revision||0,...body})});
+      const data=await res.json();
+      if(!res.ok){if(res.status===409)await refreshOps();throw Error(data.error);}
+      setOps(old=>({...old,[key]:data}));
+      if(key==="finance")applyFinance(data.value);
+      return true;
+    }catch(e){notify(e instanceof Error?e.message:"No se pudieron guardar los cambios.");return false;}
+    finally {setSaving(false);}
+  }
+  const persistedEvents=Object.entries(ops).filter(([k])=>k.startsWith("event:")).map(([,r])=>r.value as Tournament);
+  const rankingList=[...rankings,...persistedEvents.map(t=>t.event).filter(e=>!rankings.some(r=>r.id===e.id))];
+  const rankingRows=rankingList.map(r=>{
+    const t=ops["event:"+r.id]?.value as Tournament|undefined;
+    const row=rankingToRow(t?.event||r);
+    if(t)row[3]=t.phase==="closed"?"Cerrado":"En juego";
+    return row;
+  });
   const [search, setSearch] = useState("");
   const [dialog, setDialog] = useState(false);
   const [editRecord, setEditRecord] = useState<{ section: Section; index: number; values: string[] } | null>(null);
@@ -118,7 +165,7 @@ export default function AdminPanel() {
         const parsed = JSON.parse(saved) as Ranking[];
         if (Array.isArray(parsed)) {
           const demo = parsed.find((item) => item.id === "ranking-14");
-          const migrated = demo && demo.participants.length !== 20 ? parsed.map((item) => item.id === "ranking-14" ? initialRankings[0] : item) : parsed;
+          const migrated = demo && demo.participants.length < 20 && demo.title === initialRankings[0].title && demo.participants.every(p=>p.id.startsWith("demo-")) ? parsed.map((item) => item.id === "ranking-14" ? initialRankings[0] : item) : parsed;
           setRankings(migrated);
           setRows((current) => ({ ...current, Rankings: migrated.map((item) => rankingToRow(item)) }));
           if (migrated !== parsed) window.localStorage.setItem("ttacademias:rankings", JSON.stringify(migrated));
@@ -146,11 +193,11 @@ export default function AdminPanel() {
   useEffect(() => {
     window.localStorage.setItem("ttacademias:academy-students", JSON.stringify(rows.Alumnos.map((row) => ({ name: row[0], dni: row[1] }))));
   }, [rows.Alumnos]);
-  const filteredRows = useMemo(() => {
+  const filteredRows = (() => {
     if (!(section in rows)) return [];
-    const table = rows[section as keyof typeof rows];
+    const table = section==="Rankings"?rankingRows:rows[section as keyof typeof rows];
     return table.filter((row) => row.join(" ").toLowerCase().includes(search.toLowerCase()));
-  }, [rows, section, search]);
+  })();
   function notify(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(""), 2600);
@@ -166,7 +213,7 @@ export default function AdminPanel() {
     document.body.style.setProperty("--brand-border", `color-mix(in srgb, ${brandColor} 18%, #fff)`);
     notify("Identidad guardada para el portal de la academia");
   }
-  function saveRow(event: FormEvent<HTMLFormElement>) {
+  async function saveRow(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!(section in rows)) return;
     if (section === "Alumnos") {
@@ -176,22 +223,26 @@ export default function AdminPanel() {
       setRows((current) => ({ ...current, Alumnos: [row, ...current.Alumnos] }));
     } else if (section === "Profesores") {
       if (!teacherLevels.length || !teacherSlots.length) { notify("Selecciona los niveles que enseña y al menos un bloque disponible"); return; }
-      const row = [formTitle, memberBirth, teacherLevels.join(" · "), memberEmail, memberPhone, teacherSlots.join(" · ")];
-      setRows((current) => ({ ...current, Profesores: [row, ...current.Profesores] }));
+      const row = [formTitle, memberBirth, teacherLevels.join(" · "), memberEmail, memberPhone, teacherSlots.join(" | ")];
+      const name=formTitle.trim();row[0]=name;
+      if(!name || rows.Profesores.some(t=>t[0]!==editingTeacher && t[0].toLowerCase()===name.toLowerCase())) {notify("Revisa el nombre del profesor. Debe ser único.");return;}
+      if(!fees.length || fees.some(f=>!f.amount.trim() || !Number.isFinite(Number(f.amount)) || Number(f.amount)<0)){notify("Asigna al menos un curso con su función e importe.");return;}
+      const nextTeachers=editingTeacher?finance.teachers.map(t=>t[0]===editingTeacher?row:t):[row,...finance.teachers];
+      const nextCourses=courses.map(c=>{
+        const names=c.teachers.filter(n=>n!==editingTeacher && n!==name);
+        return {...c,teachers:fees.some(f=>f.courseId===c.id)?[...names,name]:names};
+      });
+      const contracts=[...finance.contracts.filter(c=>c.teacher!==editingTeacher),...fees.map(f=>({courseId:f.courseId,teacher:name,role:f.role,cents:Math.round(Number(f.amount)*100)}))];
+      if(!await persist("finance",{value:{...finance,teachers:nextTeachers,courses:nextCourses,contracts}}))return;
+
     } else if (section === "Cursos") {
-      if (!courseTeachers.length || !courseStudents.length || !courseSlots.length || !coursePrice || !courseStarts || !courseEnds) { notify("Completa profesores, participantes, precio, fechas y al menos un horario"); return; }
+      if (!courseStudents.length || !courseSlots.length || !coursePrice || !courseStarts || !courseEnds) { notify("Completa participantes, precio, fechas y al menos un horario"); return; }
       if (courseEnds < courseStarts) { notify("La fecha de fin debe ser posterior a la fecha de inicio"); return; }
       const currentCourse = courses.find((course) => course.id === editingCourseId);
       const course: Course = { id: currentCourse?.id || `course-${Date.now()}`, name: formTitle, level: courseLevel, teachers: courseTeachers, students: courseStudents, price: coursePrice, starts: courseStarts, ends: courseEnds, slots: courseSlots };
-      const row = courseToRow(course);
-      if (currentCourse) {
-        const index = courses.findIndex((item) => item.id === currentCourse.id);
-        setCourses((current) => current.map((item) => item.id === course.id ? course : item));
-        setRows((current) => ({ ...current, Cursos: current.Cursos.map((item, itemIndex) => itemIndex === index ? row : item) }));
-      } else {
-        setCourses((current) => [...current, course]);
-        setRows((current) => ({ ...current, Cursos: [...current.Cursos, row] }));
-      }
+      const nextCourses=currentCourse?courses.map(c=>c.id===course.id?course:c):[...courses,course];
+      if(finance.contracts.some(f=>f.courseId===course.id && !course.teachers.includes(f.teacher))){notify("Modifica la asignación desde Profesores para actualizar los honorarios.");return;}
+      if(!await persist("finance",{value:{...finance,courses:nextCourses}}))return;
     } else if (section === "Clases") {
       const course = courses.find((item) => item.id === classCourseId);
       if (!course || !course.teachers.includes(classTeacher)) { notify("Selecciona un profesor asociado al curso"); return; }
@@ -220,12 +271,12 @@ export default function AdminPanel() {
       setRows((current) => ({ ...current, [section]: [row, ...current[section as keyof typeof current]] }));
     }
     setFormTitle(""); setFormDetail(""); setMemberBirth(""); setMemberDni(""); setMemberEmail(""); setMemberPhone(""); setTeacherSlots([]); setTeacherLevels([]); setCourseLevel("Intermedio"); setCourseTeachers([]); setCourseStudents([]); setCourseSlots([]); setCoursePrice(""); setCourseStarts(""); setCourseEnds(""); setClassDate(""); setRankingDate(""); setRankingVenue(""); setEditingCourseId(null); setEditingRankingId(null); setDialog(false);
-    notify(section === "Cursos" ? editingCourseId ? "Curso actualizado" : "Curso creado" : section === "Clases" ? "Clase añadida al curso" : section === "Rankings" ? editingRankingId ? "Ranking actualizado" : "Ranking creado · ya puedes compartir su enlace" : "Registro agregado en esta demostración");
+    notify(section === "Cursos" ? editingCourseId ? "Curso actualizado" : "Curso creado" : section === "Clases" ? "Clase añadida al curso" : section === "Rankings" ? editingRankingId ? "Ranking actualizado" : "Ranking creado · ya puedes compartir su enlace" : section==="Profesores" ? "Profesor y honorarios guardados" : "Registro agregado en esta demostración");
   }
   function openCourseSchedule(course: Course | null) {
     setScheduleEditor({ courseId: course?.id || null, draft: [...(course?.slots || courseSlots)], step: "edit" });
   }
-  function confirmCourseSchedule() {
+  async function confirmCourseSchedule() {
     if (!scheduleEditor) return;
     if (!scheduleEditor.draft.length) { notify("Selecciona al menos un bloque semanal"); return; }
     if (scheduleEditor.step === "edit") { setScheduleEditor({ ...scheduleEditor, step: "confirm" }); return; }
@@ -233,9 +284,7 @@ export default function AdminPanel() {
       const course = courses.find((item) => item.id === scheduleEditor.courseId);
       if (course) {
         const updated = { ...course, slots: scheduleEditor.draft };
-        const index = courses.findIndex((item) => item.id === course.id);
-        setCourses((current) => current.map((item) => item.id === course.id ? updated : item));
-        setRows((current) => ({ ...current, Cursos: current.Cursos.map((row, rowIndex) => rowIndex === index ? courseToRow(updated) : row) }));
+        if(!await persist("finance",{value:{...finance,courses:courses.map(c=>c.id===course.id?updated:c)}}))return;
       }
     } else setCourseSlots(scheduleEditor.draft);
     setScheduleEditor(null);
@@ -247,20 +296,33 @@ export default function AdminPanel() {
       const course = courses[index];
       if (!course) return;
       setEditingCourseId(course.id); setFormTitle(course.name); setCourseLevel(course.level); setCourseTeachers([...course.teachers]); setCourseStudents([...course.students]); setCoursePrice(course.price); setCourseStarts(course.starts); setCourseEnds(course.ends); setCourseSlots([...course.slots]); setSection("Cursos"); setDialog(true);
+    } else if(target==="Profesores"){
+      setEditingTeacher(row[0]);setFormTitle(row[0]);setMemberBirth(row[1]);setTeacherLevels(row[2].split(" · ").filter(Boolean));setMemberEmail(row[3]);setMemberPhone(row[4]);
+      setTeacherSlots(row[5].includes(" | ")?row[5].split(" | "):row[5].split(/ · (?=(?:Lun|Mar|Mié|Jue|Vie|Sáb|Dom) )/).filter(Boolean));
+      setFees(courses.filter(c=>c.teachers.includes(row[0])).map(c=>{
+        const f=finance.contracts.find(f=>f.courseId===c.id&&f.teacher===row[0]);
+        return {courseId:c.id,role:f?.role||"Principal",amount:f?String(f.cents/100):""};
+      }));setDialog(true);
     } else if (target === "Rankings") {
-      const ranking = rankings[index];
+      const ranking = rankingList[rankingRows.indexOf(row)];
       if (!ranking) return;
       setEditingRankingId(ranking.id); setFormTitle(ranking.title); setRankingDate(ranking.date); setRankingTime(ranking.time); setRankingVenue(ranking.venue); setRankingStudentPrice(String(ranking.studentPrice)); setRankingPublicPrice(String(ranking.publicPrice)); setRankingCapacity(String(ranking.capacity)); setSection("Rankings"); setDialog(true);
     } else setEditRecord({ section: target, index, values: [...row] });
   }
-  function confirmDeleteRecord() {
+  async function confirmDeleteRecord() {
     if (!deleteRecord) return;
     const { section: target, index } = deleteRecord;
+    if(target==="Cursos" || target==="Profesores") {
+      const id=courses[index]?.id, teacher=rows.Profesores[index]?.[0];
+      if(target==="Cursos" && (finance.receipts.some(r=>r.courseId===id)||finance.contracts.some(f=>f.courseId===id)) || target==="Profesores" && finance.contracts.some(f=>f.teacher===teacher)){
+        notify("El registro tiene cobros u honorarios asociados.");return;
+      }
+      const next=target==="Cursos"?{...finance,courses:courses.filter(c=>c.id!==id)}:{...finance,teachers:rows.Profesores.filter(t=>t[0]!==teacher),courses:courses.map(c=>({...c,teachers:c.teachers.filter(n=>n!==teacher)}))};
+      if(await persist("finance",{value:next}))setDeleteRecord(null);return;
+    }
     setRows((current) => ({ ...current, [target]: (current[target as keyof typeof current] as string[][]).filter((_, rowIndex) => rowIndex !== index) }));
-    if (target === "Cursos") { const removed = courses[index]; setCourses((current) => current.filter((_, rowIndex) => rowIndex !== index)); if (removed) setClassCourseId((current) => current === removed.id ? courses[index + 1]?.id || courses[index - 1]?.id || "" : current); }
     if (target === "Rankings") { const removed = rankings[index]; setRankings((current) => current.filter((_, rowIndex) => rowIndex !== index)); if (removed?.id === activeRankingId) setActiveRankingId(null); }
     if (target === "Alumnos") { const name = rows.Alumnos[index]?.[0]; if (name) { const nextCourses = courses.map((course) => ({ ...course, students: course.students.filter((student) => student !== name) })); setCourses(nextCourses); setRows((current) => ({ ...current, Cursos: nextCourses.map(courseToRow) })); } }
-    if (target === "Profesores") { const name = rows.Profesores[index]?.[0]; if (name) { const nextCourses = courses.map((course) => ({ ...course, teachers: course.teachers.filter((teacher) => teacher !== name) })); setCourses(nextCourses); setRows((current) => ({ ...current, Cursos: nextCourses.map(courseToRow) })); } }
     setDeleteRecord(null); notify("Registro eliminado");
   }
   function saveGenericEdit(event: FormEvent<HTMLFormElement>) {
@@ -282,10 +344,12 @@ export default function AdminPanel() {
   function changeSection(target: Section) { setSection(target); setSearch(""); setMobileMenu(false); }
   async function logout() { try { await fetch("/api/auth/logout", { method: "POST" }); } finally { window.location.assign("/login"); } }
   function openCreate(target: Section) {
+    setEditingTeacher(null);setFees([]);
     setSection(target); setSearch(""); setActiveRankingId(null); setFormTitle(""); setFormDetail(""); setMemberBirth(""); setMemberDni(""); setMemberEmail(""); setMemberPhone(""); setTeacherSlots([]); setTeacherLevels([]); setCourseLevel("Intermedio"); setCourseTeachers([]); setCourseStudents([]); setCourseSlots([]); setCoursePrice(""); setCourseStarts(""); setCourseEnds(""); setClassDate(""); setRankingDate(""); setRankingVenue(""); setEditingCourseId(null); setEditingRankingId(null); if (target === "Clases") { const course = courses[0]; setClassCourseId(course?.id || ""); setClassTeacher(course?.teachers[0] || ""); setClassTime(course?.slots[0] || ""); } setDialog(true);
   }
 
   return <main className="admin-app" style={{ ["--admin-brand" as string]: brandColor } as React.CSSProperties}>
+    {opsError && <button className="ops-retry" onClick={refreshOps}>{opsError} Reintentar</button>}
     <aside className={`admin-sidebar ${mobileMenu ? "open" : ""}`}>
       <a href="/" className="rail-brand" aria-label={`Ir a la landing de ${academyName}`}>
         <span className="admin-brand-mark">{logoUrl ? <img src={logoUrl} alt="" /> : <Activity size={20} />}</span>
@@ -326,26 +390,35 @@ export default function AdminPanel() {
             <section className="admin-panel-card admin-activity-panel"><div className="admin-card-heading"><div><h2>Actividad reciente</h2><p>Actualizaciones de tu academia</p></div><button className="admin-plain-link" onClick={() => changeSection("Avisos")}>Ver todo <ChevronRight size={15} /></button></div><div className="activity-list"><ActivityItem icon={Users} title="Nueva matrícula" detail="Valeria Rojas · Plan competitivo" time="Hace 8 min" tone="blue" /><ActivityItem icon={CreditCard} title="Pago recibido" detail="Mateo Gonzales · S/. 280.00" time="Hace 24 min" tone="green" /><ActivityItem icon={Trophy} title="Nuevo ranking publicado" detail="Torneo Relámpago #14 · 16 inscritos" time="Hace 1 h" tone="orange" /></div></section>
             <section className="admin-panel-card admin-quick-panel"><div className="admin-card-heading"><div><h2>Accesos rápidos</h2><p>Las tareas frecuentes, a un clic</p></div></div><div className="quick-actions"><QuickAction icon={UserRound} title="Agregar alumno" detail="Registrar matrícula" onClick={() => openCreate("Alumnos")} /><QuickAction icon={GraduationCap} title="Agregar profesor" detail="Crear disponibilidad" onClick={() => openCreate("Profesores")} /><QuickAction icon={CalendarDays} title="Crear curso" detail="Definir grupo y horarios" onClick={() => openCreate("Cursos")} /><QuickAction icon={ClipboardList} title="Programar clase" detail="Dentro de un curso" onClick={() => openCreate("Clases")} /></div></section></div>
         </> : section === "Rankings" && activeRankingId ? (() => {
-          const ranking = rankings.find((item) => item.id === activeRankingId);
+          const ranking = rankingList.find((item) => item.id === activeRankingId);
           if (!ranking) return <div className="admin-empty-state"><button className="admin-plain-link" onClick={() => setActiveRankingId(null)}>Volver a rankings</button></div>;
-          return <RankingManager ranking={ranking} academyStudents={rows.Alumnos.map((row) => ({ name: row[0], dni: row[1] }))} onBack={() => setActiveRankingId(null)} onToast={notify} onChange={(updated) => { const index = rankings.findIndex((item) => item.id === updated.id); setRankings((current) => current.map((item) => item.id === updated.id ? updated : item)); setRows((current) => ({ ...current, Rankings: current.Rankings.map((row, rowIndex) => rowIndex === index ? rankingToRow(updated) : row) })); }} />;
+          const key="event:"+ranking.id;
+          const competition=ops[key]?.value as Tournament|undefined;
+          return <>{competition?<><button className="back-link" onClick={()=>setActiveRankingId(null)}>Volver a rankings</button><h1>{competition.event.title}</h1></>:<RankingManager ranking={ranking} academyStudents={rows.Alumnos.map((row) => ({ name: row[0], dni: row[1] }))} onBack={() => setActiveRankingId(null)} onToast={notify} onChange={(updated) => { const index = rankings.findIndex((item) => item.id === updated.id); setRankings((current) => current.map((item) => item.id === updated.id ? updated : item)); setRows((current) => ({ ...current, Rankings: current.Rankings.map((row, rowIndex) => rowIndex === index ? rankingToRow(updated) : row) })); }} />}
+          <TournamentPanel key={key} event={{...ranking, participants:ranking.participants.map(p=>{
+            if(p.dni || p.kind!=="Alumno")return p;
+            const matches=rows.Alumnos.filter(row=>row[0]===p.name);
+            return matches.length===1?{...p,dni:matches[0][1]}:p;
+          })}} t={competition} busy={!opsReady||saving} onMove={action=>persist(key,{action})}/></>;
         })() : section === "Mi academia" ? <>
           <div className="admin-page-heading"><div><span className="admin-eyebrow">PERSONALIZACIÓN</span><h1>Mi academia</h1><p>Configura la identidad que verán tus alumnos en el subdominio.</p></div><div className="tenant-domain"><ShieldCheck size={16} /> lawntennis.ttacademias.com</div></div><div className="settings-layout"><section className="admin-panel-card academy-settings-card"><div className="admin-card-heading"><div><h2>Marca y portal</h2><p>Estos datos personalizan el portal de estudiantes.</p></div></div><label className="admin-form-label">Nombre de la academia<input value={academyName} onChange={(e) => setAcademyName(e.target.value)} /></label><label className="admin-form-label">URL del logo<input value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="https://.../logo.png" /></label><label className="admin-form-label">Color principal<div className="color-picker-row"><input type="color" value={brandColor} onChange={(e) => setBrandColor(e.target.value)} /><input value={brandColor} onChange={(e) => setBrandColor(e.target.value)} /></div></label><button className="admin-primary-button" onClick={() => void saveAcademySettings()}><CheckCircle2 size={16} /> Guardar cambios</button><p className="admin-form-hint">El logo y el color se guardan y se aplican al subdominio de esta academia.</p></section><section className="admin-panel-card portal-preview-card"><div className="admin-card-heading"><div><h2>Vista previa del estudiante</h2><p>Ejemplo del encabezado de tu portal</p></div></div><div className="portal-preview" style={{ ["--preview-brand" as string]: brandColor } as React.CSSProperties}><div className="preview-header"><span>{logoUrl ? <img src={logoUrl} alt="" /> : <Activity size={18} />}</span><strong>{academyName}</strong></div><div className="preview-welcome"><small>MIÉRCOLES, 18 NOV</small><h3>Hola, Mateo</h3><p>Sede Miraflores</p></div><div className="preview-class"><span>CLASE DE HOY</span><strong>Control de Saques &amp; Topspin</strong><button>Confirmar asistencia</button></div></div></section></div>
         </> : <>
           <div className="admin-page-heading"><div><h1>{section}</h1><p>{sectionDescription(section)}</p></div>{actionLabel[section] && <button className="admin-primary-button" onClick={() => openCreate(section)}><Plus size={17} />{actionLabel[section]}</button>}</div>
+          {section === "Rankings" && <StandingsTable rows={opsReady?academyTable(persistedEvents):undefined} error={!!opsError}/>}
+          {section === "Pagos" && <CourseLedger data={finance} busy={!opsReady||saving} save={receipt=>persist("finance",{value:{...finance,receipts:[...finance.receipts,receipt]}})}/>}
           {section === "Alumnos" && <EnrollmentPanel key="requests"/>}
           {section === "Cursos" && <EnrollmentPanel key="offers" courses={courses}/>}
           <div className="admin-panel-card admin-table-card"><div className="admin-list-toolbar"><label className="admin-search"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Buscar en ${section.toLowerCase()}...`} /></label><button onClick={() => notify("Filtros disponibles próximamente")}><SlidersHorizontal size={16} /> Filtros</button><span>{filteredRows.length} registros</span></div>
           <div className="admin-table-wrap"><table><thead><tr>{(section === "Alumnos" ? ["ALUMNO", "EDAD", "NIVEL", "CORREO", "CELULAR", "MATRÍCULA"] : section === "Profesores" ? ["PROFESOR", "FECHA NACIMIENTO", "NIVELES QUE ENSEÑA", "CORREO", "CELULAR", "BLOQUES DISPONIBLES"] : section === "Cursos" ? ["CURSO", "NIVEL · HORARIO", "ALUMNOS MATRICULADOS", "PROFESORES", "VIGENCIA", "COSTO TOTAL"] : section === "Clases" ? ["CLASE / SESIÓN", "CURSO", "FECHA Y HORA", "PROFESOR", "ALUMNOS"] : section === "Rankings" ? ["RANKING", "FECHA", "CUPOS", "ESTADO"] : section === "Pagos" ? ["ALUMNO", "CONCEPTO", "MONTO", "ESTADO"] : ["AVISO", "FECHA", "DESTINATARIOS", "ESTADO"]).map((head) => <th scope="col" key={head}>{head.charAt(0) + head.slice(1).toLocaleLowerCase("es-PE")}</th>)}<th /></tr></thead><tbody>{filteredRows.map((row, index) => {
-            const sourceIndex = (rows[section as keyof typeof rows] as string[][]).indexOf(row);
+            const sourceIndex = (section==="Rankings"?rankingRows:rows[section as keyof typeof rows] as string[][]).indexOf(row);
             const cells = section === "Alumnos" ? [row[0], String(calculateAge(row[2])), row[3], row[4], row[5], row[6]] : section === "Cursos" ? [row[0], `${row[1]} · ${row[6]}`, row[2], row[3], row[4], row[5]] : row;
-            return <tr key={`${row[0]}-${index}`} className={section === "Cursos" ? "course-list-row" : ""}>{cells.map((cell, cellIndex) => <td key={cellIndex}>{cellIndex === 0 && section === "Cursos" ? <button className="course-title-link" onClick={() => setCourseStudentsView(courses[sourceIndex] || null)}>{cell}<ChevronRight size={14}/></button> : cellIndex === 0 ? <strong>{cell}</strong> : section === "Alumnos" && cellIndex === 5 ? <button className="enrollment-view-button" onClick={() => setStudentDetails(row)}>Ver matrícula <ChevronRight size={13}/></button> : section === "Cursos" && cellIndex === 2 ? <button className="course-participants-button" onClick={() => setCourseStudentsView(courses[sourceIndex] || null)}>{cell} <ChevronRight size={13}/></button> : section === "Alumnos" && cellIndex === 1 ? <span className="age-value">{cell} años</span> : cellIndex === row.length - 1 && !["Alumnos", "Profesores", "Cursos", "Clases"].includes(section) ? <span className={`table-status ${cell.toLowerCase().includes("pendiente") || cell.toLowerCase().includes("renovar") ? "warning" : ""}`}><i />{cell}</span> : cell}</td>)}<td><div className="admin-row-actions">{section === "Cursos" && <button className="row-action" title="Ver o editar horario" aria-label={`Horario de ${row[0]}`} onClick={() => openCourseSchedule(courses[sourceIndex] || null)}><CalendarClock size={15} /></button>}{section === "Rankings" && <button className="row-action manage" title="Gestionar ranking" aria-label={`Gestionar ${row[0]}`} onClick={() => setActiveRankingId(rankings[sourceIndex]?.id || null)}><Users size={15} /></button>}<button className="row-action" title="Editar" aria-label={`Editar ${row[0]}`} onClick={() => openEditRecord(section, row)}><Pencil size={14} /></button><button className="row-action delete" title="Eliminar" aria-label={`Eliminar ${row[0]}`} onClick={() => setDeleteRecord({ section, index: sourceIndex, name: row[0] })}><Trash2 size={14} /></button></div></td></tr>;
+            return <tr key={`${row[0]}-${index}`} className={section === "Cursos" ? "course-list-row" : ""}>{cells.map((cell, cellIndex) => <td key={cellIndex}>{cellIndex === 0 && section === "Cursos" ? <button className="course-title-link" onClick={() => setCourseStudentsView(courses[sourceIndex] || null)}>{cell}<ChevronRight size={14}/></button> : cellIndex === 0 ? <strong>{cell}</strong> : section === "Alumnos" && cellIndex === 5 ? <button className="enrollment-view-button" onClick={() => setStudentDetails(row)}>Ver matrícula <ChevronRight size={13}/></button> : section === "Cursos" && cellIndex === 2 ? <button className="course-participants-button" onClick={() => setCourseStudentsView(courses[sourceIndex] || null)}>{cell} <ChevronRight size={13}/></button> : section === "Alumnos" && cellIndex === 1 ? <span className="age-value">{cell} años</span> : cellIndex === row.length - 1 && !["Alumnos", "Profesores", "Cursos", "Clases"].includes(section) ? <span className={`table-status ${cell.toLowerCase().includes("pendiente") || cell.toLowerCase().includes("renovar") ? "warning" : ""}`}><i />{cell}</span> : cell}</td>)}<td><div className="admin-row-actions">{section === "Cursos" && <button className="row-action" title="Ver o editar horario" aria-label={`Horario de ${row[0]}`} onClick={() => openCourseSchedule(courses[sourceIndex] || null)}><CalendarClock size={15} /></button>}{section === "Rankings" && <button className="row-action manage" title="Gestionar ranking" aria-label={`Gestionar ${row[0]}`} onClick={() => setActiveRankingId(rankingList[sourceIndex]?.id || null)}><Users size={15} /></button>}<button disabled={section==="Rankings" && !!ops["event:"+rankingList[sourceIndex]?.id]} className="row-action" title="Editar" aria-label={`Editar ${row[0]}`} onClick={() => openEditRecord(section, row)}><Pencil size={14} /></button><button disabled={section==="Rankings" && !!ops["event:"+rankingList[sourceIndex]?.id]} className="row-action delete" title="Eliminar" aria-label={`Eliminar ${row[0]}`} onClick={() => setDeleteRecord({ section, index: sourceIndex, name: row[0] })}><Trash2 size={14} /></button></div></td></tr>;
           })}</tbody></table>{filteredRows.length === 0 && <div className="admin-empty-state">No encontramos resultados con esa búsqueda.</div>}</div></div>
         </>}
       </div>
     </section>
     {dialog && !scheduleEditor && <Modal className={`admin-form-modal ${section === "Profesores" ? "teacher-modal" : section === "Cursos" ? "course-modal" : section === "Clases" ? "class-modal" : ""}`} labelledBy="admin-create-title" notice={toast} onDismiss={() => setDialog(false)}>
-      <div className="admin-modal-heading"><div><span className="admin-eyebrow">{section.toUpperCase()}</span><h2 id="admin-create-title">{section === "Cursos" && editingCourseId ? "Editar curso" : section === "Rankings" && editingRankingId ? "Editar ranking" : actionLabel[section] || "Nuevo registro"}</h2><p>{section === "Alumnos" ? "Ingresa los datos del estudiante y asígnale su nivel." : section === "Profesores" ? "Registra sus datos y marca sus bloques disponibles." : section === "Cursos" ? "Configura el programa completo de enseñanza: grupo, costo, fechas y horario." : section === "Clases" ? "Añade una sesión a uno de los cursos asociados al profesor." : section === "Rankings" ? "Define fecha, sede, aforo y tarifas para alumnos y público general." : "Completa los datos principales para continuar."}</p></div><button className="admin-icon-button" aria-label="Cerrar" onClick={() => { setDialog(false); setEditingCourseId(null); setEditingRankingId(null); }}><X size={18} /></button></div>
+      <div className="admin-modal-heading"><div><span className="admin-eyebrow">{section.toUpperCase()}</span><h2 id="admin-create-title">{section === "Profesores" && editingTeacher ? "Editar profesor" : section === "Cursos" && editingCourseId ? "Editar curso" : section === "Rankings" && editingRankingId ? "Editar ranking" : actionLabel[section] || "Nuevo registro"}</h2><p>{section === "Alumnos" ? "Ingresa los datos del estudiante y asígnale su nivel." : section === "Profesores" ? "Asigna sus cursos, fija los honorarios de cada uno y marca su disponibilidad." : section === "Cursos" ? "Configura el programa completo de enseñanza: grupo, costo, fechas y horario." : section === "Clases" ? "Añade una sesión a uno de los cursos asociados al profesor." : section === "Rankings" ? "Define fecha, sede, aforo y tarifas para alumnos y público general." : "Completa los datos principales para continuar."}</p></div><button className="admin-icon-button" aria-label="Cerrar" onClick={() => { setDialog(false); setEditingCourseId(null); setEditingRankingId(null); }}><X size={18} /></button></div>
       <form onSubmit={saveRow}>
         {(section === "Alumnos" || section === "Profesores") && <>
           <label className="admin-form-label">Nombre y apellido<input autoFocus required value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder={section === "Alumnos" ? "Ej. Mateo Gonzales" : "Ej. Carlos Mendoza"} /></label>
@@ -353,6 +426,7 @@ export default function AdminPanel() {
           <div className="admin-form-grid"><label className="admin-form-label">Fecha de nacimiento<input type="date" required value={memberBirth} onChange={(e) => setMemberBirth(e.target.value)} /></label><label className="admin-form-label">Celular<input type="tel" required value={memberPhone} onChange={(e) => setMemberPhone(e.target.value)} placeholder="+51 987 654 321" /></label></div>
           <label className="admin-form-label">Correo electrónico<input type="email" required value={memberEmail} onChange={(e) => setMemberEmail(e.target.value)} placeholder="nombre@correo.com" /></label>
           {section === "Alumnos" ? <label className="admin-form-label">Nivel<select value={memberLevel} onChange={(e) => setMemberLevel(e.target.value)}><option>Básico</option><option>Intermedio</option><option>Avanzado</option></select></label> : <>
+            <AssignmentFields courses={courses} fees={fees} change={setFees}/>
             <MultiSelect label="Niveles que enseña" placeholder="Selecciona los niveles" options={["Básico", "Intermedio", "Avanzado"]} selected={teacherLevels} onChange={setTeacherLevels} emptyLabel="Elige al menos un nivel." required />
             <div className="teacher-calendar-wrap"><div className="teacher-calendar-heading"><div><strong>Disponibilidad semanal</strong><span>Selecciona bloques de dos horas por día</span></div><button type="button" className="calendar-week-control" onClick={() => notify("Semana del 17 al 23 de noviembre")}>Semana del 17 nov <ChevronDown size={14} /></button></div><div className="teacher-calendar-scroll"><div className="teacher-calendar"><div className="teacher-calendar-corner">HORA</div>{teacherCalendarDays.map((day) => <div className="teacher-calendar-day" key={day.day}><strong>{day.day}</strong><small>{day.date}</small></div>)}{twoHourBlocks.map((block) => <div className="teacher-calendar-row" key={block}><div className="teacher-calendar-time">{block}<small>2 horas</small></div>{teacherCalendarDays.map((day) => { const key = `${day.day} ${day.date} · ${block}`; const selected = teacherSlots.includes(key); return <button type="button" aria-label={`${key}, ${selected ? "seleccionado" : "disponible"}`} aria-pressed={selected} className={`teacher-slot ${selected ? "selected" : ""}`} key={key} onClick={() => setTeacherSlots((current) => selected ? current.filter((slot) => slot !== key) : [...current, key])}>{selected && <CheckCircle2 size={15} />}</button>; })}</div>)}</div></div><div className="teacher-calendar-footer"><span>{teacherSlots.length} bloques seleccionados</span><strong>{teacherSlots.length * 2} h disponibles</strong></div></div>
           </>}
@@ -361,7 +435,7 @@ export default function AdminPanel() {
           <label className="admin-form-label">Nombre del curso<input autoFocus required value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="Ej. Fundamentos del tenis de mesa" /></label>
           <div className="admin-form-grid"><label className="admin-form-label">Nivel del curso<select value={courseLevel} onChange={(e) => setCourseLevel(e.target.value)}><option>Básico</option><option>Intermedio</option><option>Avanzado</option></select></label><label className="admin-form-label">Costo total del curso<div className="admin-money-input"><span>S/.</span><input type="number" min="0" step="0.01" required value={coursePrice} onChange={(e) => setCoursePrice(e.target.value)} placeholder="280.00" /></div></label></div>
           <div className="admin-form-grid"><label className="admin-form-label">Fecha de inicio<input type="date" required value={courseStarts} onChange={(e) => setCourseStarts(e.target.value)} /></label><label className="admin-form-label">Fecha de fin<input type="date" min={courseStarts || undefined} required value={courseEnds} onChange={(e) => setCourseEnds(e.target.value)} /></label></div>
-          <MultiSelect label="Profesores asociados" placeholder="Elige uno o más profesores" options={rows.Profesores.map((row) => row[0])} selected={courseTeachers} onChange={setCourseTeachers} emptyLabel="Primero agrega profesores a la academia." required />
+          <MultiSelect label="Profesores asociados" placeholder="Selecciona profesores" options={rows.Profesores.map((row) => row[0])} selected={courseTeachers} onChange={setCourseTeachers} emptyLabel="Puedes asignar un profesor al crear su ficha." />
           <MultiSelect label="Participantes del curso" placeholder="Busca y selecciona alumnos" options={rows.Alumnos.map((row) => row[0])} selected={courseStudents} onChange={setCourseStudents} emptyLabel="Primero agrega alumnos a la academia." required />
           <div className="course-schedule-card"><div><span className="course-schedule-icon"><CalendarDays size={18} /></span><div><strong>Horario semanal</strong><small>{courseSlots.length ? `${courseSlots.length} bloques · ${courseSlots.length * 2} horas por semana` : "Aún no has configurado días y horas"}</small></div></div><button type="button" className="admin-secondary-button" onClick={() => openCourseSchedule(null)}><CalendarClock size={16} /> Ver y editar horario</button></div>
         </>}
@@ -379,11 +453,11 @@ export default function AdminPanel() {
           <div className="ranking-link-preview"><Link2 size={16} /><span>Al guardar se generará un enlace público de inscripción.</span></div>
         </>}
         {!( ["Alumnos", "Profesores", "Cursos", "Clases", "Rankings"] as Section[]).includes(section) && <><label className="admin-form-label">Nombre o título<input autoFocus required value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder={section === "Avisos" ? "Ej. Cambio de horario" : "Escribe un nombre"} /></label><label className="admin-form-label">Detalle<input value={formDetail} onChange={(e) => setFormDetail(e.target.value)} placeholder="Nivel, fecha, horario o información" /></label></>}
-        <div className="admin-modal-actions"><button type="button" className="admin-secondary-button" onClick={() => { setDialog(false); setEditingCourseId(null); setEditingRankingId(null); }}>Cancelar</button><button type="submit" className="admin-primary-button"><Plus size={16} />{section === "Cursos" ? editingCourseId ? "Guardar cambios" : "Crear curso" : section === "Clases" ? "Crear clase" : section === "Rankings" ? editingRankingId ? "Guardar cambios" : "Crear ranking" : "Guardar"}</button></div>
+        <div className="admin-modal-actions"><button type="button" className="admin-secondary-button" onClick={() => { setDialog(false); setEditingCourseId(null); setEditingRankingId(null); }}>Cancelar</button><button type="submit" disabled={(section==="Profesores" || section==="Cursos") && (!opsReady||saving)} className="admin-primary-button"><Plus size={16} />{section === "Cursos" ? editingCourseId ? "Guardar cambios" : "Crear curso" : section === "Clases" ? "Crear clase" : section === "Rankings" ? editingRankingId ? "Guardar cambios" : "Crear ranking" : "Guardar"}</button></div>
       </form></Modal>}
     {scheduleEditor && <Modal className="admin-form-modal course-modal schedule-editor-modal" labelledBy="schedule-editor-title" notice={toast} onDismiss={() => setScheduleEditor(null)}><div className="admin-modal-heading"><div><span className="admin-eyebrow">HORARIO SEMANAL</span><h2 id="schedule-editor-title">{scheduleEditor.step === "edit" ? "Ver y editar horario" : "Confirma el horario"}</h2><p>{scheduleEditor.step === "edit" ? "Marca bloques de dos horas. Revisa los cambios antes de aplicarlos." : "Verifica los días y horas que quedarán guardados en el curso."}</p></div><button className="admin-icon-button" aria-label="Cerrar" onClick={() => setScheduleEditor(null)}><X size={18} /></button></div>{scheduleEditor.step === "edit" ? <><div className="course-calendar-scroll"><div className="course-calendar"><div className="course-calendar-corner">INICIO</div>{["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day) => <div className="course-weekday" key={day}>{day}</div>)}{twoHourBlocks.map((time) => <div className="course-calendar-row" key={time}><div className="course-time-label">{time}<small>2 horas</small></div>{["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day) => { const key = `${day} · ${time}`; const selected = scheduleEditor.draft.includes(key); return <button key={key} type="button" aria-label={`${day}, ${time}`} aria-pressed={selected} className={`course-slot ${selected ? "selected" : ""}`} onClick={() => setScheduleEditor((current) => current ? { ...current, draft: selected ? current.draft.filter((slot) => slot !== key) : [...current.draft, key] } : current)}>{selected ? <CheckCircle2 size={14} /> : <Plus size={12} />}</button>; })}</div>)}</div></div><div className="teacher-calendar-footer"><span>{scheduleEditor.draft.length} bloques seleccionados</span><strong>{scheduleEditor.draft.length * 2} h / semana</strong></div><div className="admin-modal-actions"><button className="admin-secondary-button" onClick={() => setScheduleEditor(null)}>Cancelar</button><button className="admin-primary-button" onClick={confirmCourseSchedule}>Revisar cambios <ChevronRight size={16} /></button></div></> : <><div className="schedule-doublecheck"><span><CheckCircle2 size={20} /></span><div><strong>{scheduleEditor.draft.length} bloques · {scheduleEditor.draft.length * 2} horas semanales</strong><p>{scheduleEditor.draft.join(" · ")}</p></div></div><p className="admin-form-hint">Al confirmar, estas franjas definirán las fechas y horas disponibles para programar clases. Puedes volver a editarlas después.</p><div className="admin-modal-actions"><button className="admin-secondary-button" onClick={() => setScheduleEditor({ ...scheduleEditor, step: "edit" })}>Volver a editar</button><button className="admin-primary-button" onClick={confirmCourseSchedule}><Check size={16} />Confirmar horario</button></div></>}</Modal>}
     {editRecord && <Modal className="admin-form-modal generic-edit-modal" label="Editar registro" notice={toast} onDismiss={() => setEditRecord(null)}><div className="admin-modal-heading"><div><span className="admin-eyebrow">{editRecord.section.toUpperCase()}</span><h2>Editar registro</h2><p>Actualiza los datos y guarda los cambios.</p></div><button className="admin-icon-button" aria-label="Cerrar" onClick={() => setEditRecord(null)}><X size={18} /></button></div><form onSubmit={saveGenericEdit}>{editRecord.values.map((value, index) => <label className="admin-form-label" key={index}>{getColumnLabels(editRecord.section, editRecord.values)[index] || `Dato ${index + 1}`}<input value={value} onChange={(e) => setEditRecord((current) => current ? { ...current, values: current.values.map((item, itemIndex) => itemIndex === index ? e.target.value : item) } : current)} /></label>)}<div className="admin-modal-actions"><button type="button" className="admin-secondary-button" onClick={() => setEditRecord(null)}>Cancelar</button><button className="admin-primary-button" type="submit"><Check size={16} />Guardar cambios</button></div></form></Modal>}
-    {studentDetails && <Modal className="admin-form-modal enrollment-details-modal" labelledBy="student-enrollment-title" notice={toast} onDismiss={() => setStudentDetails(null)}><div className="admin-modal-heading"><div><span className="admin-eyebrow">DETALLE DE MATRÍCULA</span><h2 id="student-enrollment-title">{studentDetails[0]}</h2><p>DNI {studentDetails[1]} · {calculateAge(studentDetails[2])} años · Nivel {studentDetails[3]}</p></div><button className="admin-icon-button" aria-label="Cerrar" onClick={() => setStudentDetails(null)}><X size={18}/></button></div>{courses.filter((course) => course.students.includes(studentDetails[0])).length ? <div className="enrollment-course-list">{courses.filter((course) => course.students.includes(studentDetails[0])).map((course) => <article className="enrollment-course-card" key={course.id}><div className="enrollment-course-heading"><div><span>CURSO MATRICULADO</span><h3>{course.name}</h3></div><b>{course.level}</b></div><div className="enrollment-course-meta"><div><small>Vigencia hasta</small><strong>{formatLongDate(course.ends)}</strong></div><div><small>Pago del curso</small><strong>{studentDetails[6]?.toLowerCase().includes("renovar") ? "Pendiente" : "Al día"}</strong></div><div><small>Costo del curso</small><strong>S/. {Number(course.price).toFixed(2)}</strong></div></div><p className="enrollment-course-schedule">Horario: {course.slots.join(" · ")}</p></article>)}</div> : <div className="course-students-empty">Este alumno aún no está matriculado en un curso.</div>}<div className="admin-modal-actions"><button className="admin-primary-button" onClick={() => setStudentDetails(null)}>Listo</button></div></Modal>}
+    {studentDetails && <Modal className="admin-form-modal enrollment-details-modal" labelledBy="student-enrollment-title" notice={toast} onDismiss={() => setStudentDetails(null)}><div className="admin-modal-heading"><div><span className="admin-eyebrow">DETALLE DE MATRÍCULA</span><h2 id="student-enrollment-title">{studentDetails[0]}</h2><p>DNI {studentDetails[1]} · {calculateAge(studentDetails[2])} años · Nivel {studentDetails[3]}</p></div><button className="admin-icon-button" aria-label="Cerrar" onClick={() => setStudentDetails(null)}><X size={18}/></button></div>{courses.filter((course) => course.students.includes(studentDetails[0])).length ? <div className="enrollment-course-list">{courses.filter((course) => course.students.includes(studentDetails[0])).map((course) => <article className="enrollment-course-card" key={course.id}><div className="enrollment-course-heading"><div><span>CURSO MATRICULADO</span><h3>{course.name}</h3></div><b>{course.level}</b></div><div className="enrollment-course-meta"><div><small>Vigencia hasta</small><strong>{formatLongDate(course.ends)}</strong></div><div><small>Cobrado a este alumno</small><strong>S/ {(finance.receipts.filter(r=>r.courseId===course.id && r.student===studentDetails[0]).reduce((n,r)=>n+r.cents,0)/100).toFixed(2)}</strong></div><div><small>Costo del curso</small><strong>S/. {Number(course.price).toFixed(2)}</strong></div></div><p className="enrollment-course-schedule">Horario: {course.slots.join(" · ")}</p></article>)}</div> : <div className="course-students-empty">Este alumno aún no está matriculado en un curso.</div>}<div className="admin-modal-actions"><button className="admin-primary-button" onClick={() => setStudentDetails(null)}>Listo</button></div></Modal>}
     {courseStudentsView && <Modal className="admin-form-modal course-students-modal" labelledBy="course-students-title" notice={toast} onDismiss={() => setCourseStudentsView(null)}><div className="admin-modal-heading"><div><span className="admin-eyebrow">DETALLE DEL CURSO</span><h2 id="course-students-title">{courseStudentsView.name}</h2><p>{courseStudentsView.students.length} alumnos · Nivel {courseStudentsView.level}</p></div><button className="admin-icon-button" aria-label="Cerrar" onClick={() => setCourseStudentsView(null)}><X size={18}/></button></div><div className="course-detail-summary"><div><small>Profesores</small><strong>{courseStudentsView.teachers.join(", ") || "Sin asignar"}</strong></div><div><small>Vigencia</small><strong>{formatLongDate(courseStudentsView.starts)} – {formatLongDate(courseStudentsView.ends)}</strong></div><div><small>Costo</small><strong>S/. {Number(courseStudentsView.price).toFixed(2)}</strong></div><div><small>Horario semanal</small><strong>{courseStudentsView.slots.join(" · ") || "Sin horario"}</strong></div></div><div className="course-students-label"><Users size={16}/> Alumnos matriculados</div><div className="course-student-list">{courseStudentsView.students.length ? courseStudentsView.students.map((name, i) => <article className="course-student-item" key={`${name}-${i}`}><span className="course-student-avatar">{name.split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><strong>{name}</strong><small>{courseStudentsView.level}</small></div><span className="course-student-schedule">{courseStudentsView.slots.join(" · ")}</span></article>) : <div className="course-students-empty">Aún no hay alumnos matriculados.</div>}</div><div className="admin-modal-actions"><button className="admin-primary-button" onClick={() => setCourseStudentsView(null)}>Cerrar</button></div></Modal>}
     {deleteRecord && <Modal className="admin-form-modal delete-confirm-modal" label="Eliminar registro" alert notice={toast} onDismiss={() => setDeleteRecord(null)}><div className="delete-confirm-icon"><Trash2 size={20} /></div><h2>¿Eliminar este registro?</h2><p><strong>{deleteRecord.name}</strong> se quitará de la tabla. Esta acción solo afecta los datos de demostración.</p><div className="admin-modal-actions"><button className="admin-secondary-button" onClick={() => setDeleteRecord(null)}>Cancelar</button><button className="admin-danger-button" onClick={confirmDeleteRecord}>Eliminar</button></div></Modal>}
     {toast && !(dialog || scheduleEditor || editRecord || studentDetails || courseStudentsView || deleteRecord) && <div role="status" className="admin-toast"><CheckCircle2 size={17} />{toast}<button onClick={() => setToast("")} aria-label="Cerrar"><X size={15} /></button></div>}

@@ -1,4 +1,5 @@
 "use client";
+import {useStandings} from "@/components/academy-standings";
 
 import { FormEvent, useEffect, useState } from "react";
 import { Activity, CalendarDays, CheckCircle2, Clock3, MapPin, Trophy, Users } from "lucide-react";
@@ -14,6 +15,7 @@ const DEMO_STUDENTS: AcademyStudent[] = [
 ];
 
 export default function RankingRegistration({ rankingId, embedded = false }: { rankingId: string; embedded?: boolean }) {
+  const {result:board,error:boardError}=useStandings();
   const [ranking, setRanking] = useState<Ranking | null>(null);
   const [academyStudents, setAcademyStudents] = useState<AcademyStudent[]>(DEMO_STUDENTS);
   const [loading, setLoading] = useState(true);
@@ -63,7 +65,13 @@ export default function RankingRegistration({ rankingId, embedded = false }: { r
     setNotice(""); setStep("payment");
   }
 
-  function completeDemoPayment() {
+  async function completeDemoPayment() {
+    try {
+      const response=await fetch("/api/public/standings",{cache:"no-store"});
+      if(!response.ok) throw Error();
+      if((await response.json()).started.includes(rankingId)){setRanking(null);return;}
+    }catch{setNotice("No se pudo verificar si las inscripciones siguen abiertas.");return;}
+
     if (!ranking) return;
     const enrolledName = pendingParticipant?.name || participantName;
     const enrolledKind = pendingParticipant?.kind || participantKind;
@@ -84,7 +92,8 @@ export default function RankingRegistration({ rankingId, embedded = false }: { r
 
   const Page = embedded ? "div" : "main";
   const pageClass = embedded ? "embedded-ranking" : "ranking-public-page";
-  if (loading) return <Page className={pageClass} aria-label="Cargando ranking"><div className="skeleton ranking-public-skeleton-header"/><div className="skeleton ranking-public-skeleton-card"/></Page>;
+  if (loading || (!board && !boardError)) return <Page className={pageClass} aria-label="Cargando ranking"><div className="skeleton ranking-public-skeleton-header"/><div className="skeleton ranking-public-skeleton-card"/></Page>;
+  if(boardError || board?.started.includes(rankingId)) return <Page className={pageClass}><section className="ranking-public-card"><h2>{boardError?"No se pudo verificar el ranking":"Inscripciones cerradas"}</h2><a href="/rankings">Ver tabla de la academia</a></section></Page>;
   if (!ranking) return <Page className={pageClass}><section className="ranking-public-card ranking-public-unavailable"><span className="ranking-public-mark"><Trophy size={20} /></span><h1>Ranking no disponible</h1><p>El enlace puede haber vencido o el ranking todavía no está publicado.</p></section></Page>;
   if (invalidPaymentLink) return <Page className={pageClass}><section className="ranking-public-card ranking-public-unavailable"><span className="ranking-public-mark"><Trophy size={20} /></span><h1>Enlace de pago no disponible</h1><p>Solicita a la academia que te envíe un nuevo enlace de pago.</p></section></Page>;
   const displayName = pendingParticipant?.name || participantName;

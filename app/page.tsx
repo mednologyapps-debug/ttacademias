@@ -20,7 +20,7 @@ export default async function PortalHome() {
       const [rows] = await db.query<({ id: string; name: string; slug: string; logoUrl: string | null; primaryColor: string } & RowDataPacket)[]>("SELECT id,name,slug,logo_url AS logoUrl,primary_color AS primaryColor FROM academies WHERE slug=? AND status='active' LIMIT 1", [slug]);
       academy = rows[0] || null;
       if (academy) {
-        const [upcoming] = await db.query<({ id: string; title: string; startsAt: string; venue: string; studentPrice: string; publicPrice: string; capacity: number } & RowDataPacket)[]>("SELECT id,title,starts_at AS startsAt,venue,student_price AS studentPrice,public_price AS publicPrice,capacity FROM rankings WHERE academy_id=? AND status='published' AND starts_at>=NOW() ORDER BY starts_at LIMIT 1", [academy.id]);
+        const [upcoming] = await db.query<({ id: string; title: string; startsAt: string; venue: string; studentPrice: string; publicPrice: string; capacity: number } & RowDataPacket)[]>("SELECT id,title,starts_at AS startsAt,venue,student_price AS studentPrice,public_price AS publicPrice,capacity FROM rankings WHERE academy_id=? AND status='published' AND starts_at>=NOW() AND NOT EXISTS (SELECT 1 FROM academy_operations op WHERE op.academy_id=rankings.academy_id AND op.record_key=CONCAT('event:',rankings.id)) ORDER BY starts_at LIMIT 1", [academy.id]);
         ranking = upcoming[0] || null;
         const [staff] = await db.query<({ fullName: string } & RowDataPacket)[]>("SELECT full_name AS fullName FROM users WHERE academy_id=? AND role='teacher' AND status='active' ORDER BY full_name LIMIT 3", [academy.id]);
         teachers = staff.map((row) => row.fullName);

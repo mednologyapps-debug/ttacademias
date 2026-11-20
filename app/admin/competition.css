@@ -1,0 +1,27 @@
+.ops-card { background:white; border:1px solid #d9e2ed; border-radius:14px; padding:clamp(15px,2.3vw,28px);margin:14px 0;min-width:0 }
+.ops-card h2,.ops-card h3 {margin:0 0 10px}
+.ops-card p,.ops-match small {color:#506079}
+.ops-controls,.ops-match {display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-block:12px}
+.ops-match {justify-content:space-between;padding-block:8px;border-bottom:1px solid #e5eaf2}
+.ops-controls label,.ops-contract label {display:grid;gap:5px;font-size:.9rem}
+.ops-controls button,.ops-score,.ops-slot,.ops-controls select,.ops-contract input,.ops-contract select,.ops-scroll input,.ops-controls input {padding:8px 12px;border:1px solid #cad6e5;background:#fff;color:#192e4b;border-radius:8px;font:inherit}
+.ops-controls button.admin-primary-button,.ops-controls [aria-pressed=true],.ops-slot[aria-pressed=true]{background:var(--brand,#1554d1);color:#fff}
+.ops-controls button:disabled {opacity:.55}
+.ops-scroll,.ops-bracket {overflow-x:auto;max-width:100%}
+.ops-scroll table {width:100%;border-collapse:collapse;text-align:left}
+.ops-scroll td,.ops-scroll th {border-bottom:1px solid #e0e7f0;padding:10px}
+.ops-scroll input {width:75px}
+.ops-set {display:inline-block;margin:2px 6px 2px 0;padding:4px 7px;background:#f2f5fa;border-radius:5px}
+.ops-bracket {display:flex;gap:20px;padding:8px 0}
+.ops-bracket>div {min-width:210px}
+.ops-bracket article,.ops-contract {border:1px solid #d9e2ed;border-radius:10px;padding:10px;margin-bottom:10px}
+.ops-slot {display:block;width:100%;text-align:left;margin-bottom:4px}
+.ops-slot[draggable=true] {cursor:grab}
+.ops-slot:disabled,.ops-score:disabled {color:#41516a}
+.ops-contract {display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ops-contract input[type=number] {width:100px}
+
+.ops-subline {display:block;margin-top:4px}
+.ops-card summary {cursor:pointer;line-height:1.6}
+.ops-card summary + h3 {margin-top:16px}
+.ops-retry {position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:20;border:1px solid #b9c8dd;border-radius:8px;background:white;padding:10px 16px}

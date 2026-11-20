@@ -1,4 +1,5 @@
 "use client";
+import {useStandings,StandingsTable} from "@/components/academy-standings";
 
 import Modal from "@/components/modal";
 
@@ -47,13 +48,7 @@ const sessions = [
   { day: "MAR", date: "24", title: "Juego Corto y Recepción de Puntos", time: "6:00 PM - 7:30 PM", coach: "Prof. Raúl Peña", initials: "RP", tone: "sand" },
 ];
 
-const standings = [
-  { rank: 1, initials: "RA", name: "Rodrigo Alvarado", points: "2,140" },
-  { rank: 2, initials: "VC", name: "Vanessa Cárdenas", points: "1,780" },
-  { rank: 3, initials: "JL", name: "Joaquín Lozano", points: "1,695" },
-  { rank: 4, initials: "MS", name: "Martín Silva", points: "1,580" },
-  { rank: 5, initials: "EP", name: "Esteban Paredes", points: "1,510" },
-];
+
 
 export default function StudentPortal() {
   const [academyBrand, setAcademyBrand] = useState({ name: "SpinAcademy", logoUrl: "" });
@@ -182,6 +177,7 @@ function ClassesView({ onToast, attendance, onMarkAttendance }: { onToast: (mess
 }
 
 function RankingsView({ onToast, academyName }: { onToast: (message: string) => void; academyName: string }) {
+  const {result,error}=useStandings();
   const [selected, setSelected] = useState<string | null>(null);
   const [paidIds, setPaidIds] = useState<string[]>(["weekly-14"]);
   const [registeredIds, setRegisteredIds] = useState<string[]>(["weekly-14"]);
@@ -202,11 +198,11 @@ function RankingsView({ onToast, academyName }: { onToast: (message: string) => 
   return <>
     <div className="page-title"><h1>Torneos y Rankings</h1><p>Explora las competencias activas de tu academia.</p></div>
     {!event ? <>
-      <article className="card player-ranking-card"><div className="player-overview"><div className="avatar avatar-player">MG</div><div><h2>Mateo Gonzales</h2><p>Categoría Federada · Afiliado 2024</p></div><div className="medal-icon"><Medal size={20} /></div></div><div className="ranking-summary"><div className="summary-symbol"><Activity size={18} /></div><div><span>{academyName.toLocaleUpperCase("es-PE")}</span><strong>Ranking Institucional</strong></div><b>#14</b><small>de 120</small></div></article>
+      <article className="card player-ranking-card"><div className="player-overview"><div className="avatar avatar-player">MG</div><div><h2>Mateo Gonzales</h2><p>Categoría Federada · Afiliado 2024</p></div><div className="medal-icon"><Medal size={20} /></div></div><div className="ranking-summary"><div className="summary-symbol"><Activity size={18} /></div><div><span>{academyName.toLocaleUpperCase("es-PE")}</span><strong>Ranking Institucional</strong></div></div></article>
       <section className="section-block ranking-event-block"><div className="section-heading"><h2>Rankings activos</h2><span className="muted">{events.length} competencias</span></div>
         <div className="active-ranking-list">{events.map((item) => <article className="card active-ranking-card" key={item.id}><div className="active-ranking-icon"><Trophy size={20} /></div><div className="active-ranking-copy"><span className="registered-label"><i />{item.state}</span><h3>{item.title}</h3><p><CalendarDays size={14} />{item.date}</p><p><MapPin size={14} />{item.venue}</p><div className="active-ranking-meta"><span>{item.enrolled} / {item.capacity} inscritos</span><strong>Alumno {item.memberPrice}</strong></div></div><button className="button button-primary ranking-detail-link" onClick={() => setSelected(item.id)}>Ver detalles <ChevronRight size={16} /></button></article>)}</div>
       </section>
-      <section className="section-block standings-block"><div className="section-heading"><h2>Tabla de Clasificación</h2><span className="muted">Temporada 2026</span></div><article className="card standings-card">{standings.map((player) => <div className="standing-row" key={player.rank}><span className="rank-circle">{player.rank}</span><div className="avatar avatar-tiny">{player.initials}</div><strong>{player.name}</strong><div className="standing-points"><b>{player.points}</b><span>puntos</span></div></div>)}<div className="my-rank-row"><strong>#14</strong><span>Mateo Gonzales (Tu posición)</span><b>1,420 pts</b><ArrowRight size={16} /></div></article></section>
+      <StandingsTable rows={result?.table} error={error}/>
     </> : <>
       <button className="back-link ranking-back" onClick={() => { setSelected(null); setPaying(false); }}><ChevronLeft size={17} /> Volver a rankings activos</button>
       <div className="ranking-detail-layout"><article className="card tournament-detail-card"><span className={`registered-label ${registered ? "" : "pending"}`}><i />{registered ? "Inscrito · pago confirmado" : paid ? "Pago confirmado" : "Inscripción abierta"}</span><div className="ranking-detail-title"><div><span className="eyebrow">RANKING DE ACADEMIA</span><h2>{event.title}</h2></div><div className="trophy-badge"><Trophy size={20} /></div></div><p className="ranking-description">Compite con estudiantes de la academia y suma puntos para la tabla institucional.</p><div className="event-info"><span><CalendarDays size={15} />{event.date}</span><span><MapPin size={15} />{event.venue}</span></div><div className="confirmed-slots"><span><Users size={16} /> Cupos disponibles</span><strong>{event.enrolled} / {event.capacity} inscritos</strong><div className="progress-track"><span style={{ width: `${event.enrolled / event.capacity * 100}%` }} /></div></div><div className="ranking-prices"><div><span>Tarifa general</span><del>{event.publicPrice}</del></div><div><span>Tarifa estudiante</span><strong>{event.memberPrice}</strong></div></div>

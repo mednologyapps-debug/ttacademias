@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Modal from "@/components/modal";
 import RegistrationForm from "./registro/registration-form";
+import {useStandings} from "@/components/academy-standings";
 import RankingRegistration from "./ranking/[id]/ranking-registration";
 import "./landing-editorial.css";
 import { Activity, ArrowLeft, ArrowRight, CalendarDays, Menu, Trophy, X } from "lucide-react";
@@ -25,7 +26,9 @@ const demoCoaches: Record<string, { portrait: string; specialty: string }> = {
   "Lucía Salazar": { portrait: "/images/team/lucia.webp", specialty: "Desarrollo deportivo" },
 };
 
-export default function AcademyLanding({ academyName, logoUrl, primaryColor, ranking, teachers }: Props) {
+export default function AcademyLanding({ academyName, logoUrl, primaryColor, ranking: publishedRanking, teachers }: Props) {
+  const {result: standings}=useStandings();
+  const ranking=publishedRanking && !standings?.started.includes(publishedRanking.id)?publishedRanking:null;
   const [slide, setSlide] = useState(0); const [menuOpen, setMenuOpen] = useState(false); const [modal, setModal] = useState<"registration" | "ranking" | null>(null);
   const current = slides[slide];
   useEffect(() => {

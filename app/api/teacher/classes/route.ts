@@ -24,7 +24,7 @@ export async function GET() {
     let attendance: Array<{ class_id: string; id: string; name: string; response: string | null } & RowDataPacket> = [];
     if (ids.length) {
       const placeholders = ids.map(() => "?").join(",");
-      const [rows] = await getDb().query<typeof attendance>(`SELECT cs.class_id,u.id,u.full_name AS name,a.response FROM course_students es JOIN users u ON u.id=es.student_id JOIN classes cs ON cs.course_id=es.course_id LEFT JOIN attendance a ON a.class_id=cs.id AND a.student_id=u.id WHERE cs.id IN (${placeholders}) ORDER BY u.full_name`, ids);
+      const [rows] = await getDb().query<typeof attendance>(`SELECT cs.id AS class_id,u.id,u.full_name AS name,a.response FROM course_students es JOIN users u ON u.id=es.student_id JOIN classes cs ON cs.course_id=es.course_id LEFT JOIN attendance a ON a.class_id=cs.id AND a.student_id=u.id WHERE cs.id IN (${placeholders}) ORDER BY u.full_name`, ids);
       attendance = rows;
     }
     const hydrated = classes.map((item) => ({ ...item, startsAt: new Date(item.startsAt).toISOString(), students: attendance.filter((a) => a.class_id === item.id).map((a) => ({ id: a.id, name: a.name, response: a.response })) }));

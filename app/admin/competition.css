@@ -25,3 +25,75 @@
 .ops-card summary {cursor:pointer;line-height:1.6}
 .ops-card summary + h3 {margin-top:16px}
 .ops-retry {position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:20;border:1px solid #b9c8dd;border-radius:8px;background:white;padding:10px 16px}
+
+.ledger-view,.group-workspace,.tournament-scoreboard {--ink:#132942;--muted:#52647a;--line:#dfe6ee;--tint:var(--brand-soft,#eff5ff);color:var(--ink)}
+.ledger-view {display:grid;gap:20px;min-width:0}
+.ledger-tabs,.stage-tabs {display:flex;gap:4px;overflow:auto;align-items:center}
+.ledger-tabs {border-bottom:1px solid #d6e1eb}
+.ledger-tabs button,.stage-tabs button {display:inline-flex;align-items:center;justify-content:center;gap:8px;background:transparent;color:#53677b;font:inherit;font-weight:600;white-space:nowrap;cursor:pointer;border:0;padding:12px 16px}
+.ledger-tabs button {border-bottom:3px solid transparent}
+.ledger-tabs [aria-pressed=true] {border-color:var(--admin-brand,#1658ce);color:var(--admin-brand,#1658ce)}
+.sheet-heading,.ledger-toolbar,.group-sheet header,.pay-card-top,.pay-card-bottom,.pay-course-line,.phase-actions {display:flex;align-items:center;gap:12px}
+.sheet-heading,.ledger-toolbar,.pay-card-bottom,.group-sheet header {justify-content:space-between}
+.sheet-heading h2,.ledger-view h2 {margin:0;font-size:clamp(20px,2.1vw,28px);letter-spacing:-.035em}
+.sheet-heading p,.group-workspace>p,.ledger-detail>p {margin:6px 0;color:#52647a;line-height:1.5}
+.ledger-search {display:flex;align-items:center;gap:10px;padding:10px 14px;background:white;border:1px solid #c6d4e2;border-radius:10px;max-width:460px;flex:1;color:#506783}
+.ledger-search input {border:0;outline:0;width:100%;font:inherit;background:transparent;color:#162d46}
+.ledger-search:focus-within,.teacher-pay-card:focus-visible,.group-sheet button:focus-visible {outline:2px solid var(--admin-brand,#1654c7);outline-offset:2px}
+.ledger-toolbar select,.attendance-line select {font:inherit;color:#19314d;background:white;border:1px solid #c6d4e2;padding:8px 12px;border-radius:8px}
+.teacher-pay-grid,.group-board {display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,265px),1fr));gap:16px}
+.teacher-pay-card {text-align:left;border:1px solid #d9e3ed;border-radius:14px;background:#fff;padding:20px;color:#152a43;display:flex;flex-direction:column;gap:12px;cursor:pointer;font:inherit;transition:border-color .15s}
+.teacher-pay-card:hover {border-color:var(--admin-brand,#1658ce)}
+.pay-avatar {background:var(--tint);color:var(--admin-brand,#1658ce);width:42px;height:42px;display:grid;place-items:center;font-weight:750;border-radius:12px;flex:none}
+.pay-card-top strong {font-size:1.12rem;overflow-wrap:anywhere}
+.pay-course-line,.pay-course-names,.ledger-toolbar small,.income-summary small,.pay-course-detail small,.pay-card-bottom small {color:#53667d;font-size:.88rem}
+.pay-course-names {min-height:2.65em}
+.pay-card-bottom {width:100%;padding-top:13px;border-top:1px solid var(--line);margin-top:auto}
+.pay-card-bottom b,.income-summary strong {font-variant-numeric:tabular-nums;font-size:1.2rem}
+.income-summary {display:flex;flex-wrap:wrap;gap:18px 40px;padding:18px 22px;background:var(--brand-soft,#eff5ff);border-radius:12px}
+.income-summary>div,.pay-course-detail summary>span,.attendance-line>span:first-child {display:grid;gap:5px}
+.ledger-movements {max-width:100%;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px}
+.ledger-movements p {padding:16px}
+.ledger-movements table {width:100%;border-collapse:collapse;text-align:left}
+.ledger-movements th,.ledger-movements td {padding:14px;border-bottom:1px solid #e5ebf2}
+.ledger-movements th {background:#f7f9fc;color:#50647a;font-size:.85rem}
+.ledger-movements td:last-child,.ledger-movements th:last-child {text-align:right;white-space:nowrap}
+.ledger-chip {display:inline-flex;padding:5px 10px;border-radius:20px;background:#edf3fb;color:#284b74;font-weight:600;font-size:.85rem;white-space:nowrap}
+.ledger-detail .income-summary {margin:18px 0}
+.pay-course-detail {margin:12px 0;border:1px solid #dce5ee;border-radius:10px;padding:0 14px}
+.pay-course-detail summary {cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 0}
+.pay-course-detail summary::after {content:"+";color:#345477}
+.pay-course-detail[open] summary::after {content:"−"}
+.pay-course-detail summary>span {margin-right:auto}
+.attendance-line {display:grid;grid-template-columns:minmax(0,1fr) auto minmax(105px,auto);align-items:center;gap:12px;padding:12px 0;border-top:1px solid #e5ebf2}
+.ranking-entries {background:#fff;padding:14px 18px;border:1px solid #dbe4ef;border-radius:12px}
+.ranking-entries>summary {cursor:pointer;font-weight:650}
+.ranking-entries>summary span {color:#4c617a;margin-left:6px}
+.ranking-entries[open] .ranking-share-card {margin:16px 0}
+.group-sheet {border:1px solid #dbe4ef;border-radius:12px;background:#fff;min-width:0;overflow:hidden;align-self:start}
+.group-board {margin-top:16px}
+.group-sheet header {padding:13px 15px;background:#f0f5fc}
+.group-sheet header strong,.group-sheet li>button,.group-sheet li>div {display:flex;align-items:center;gap:10px}
+.group-sheet header span {font-size:.85rem;color:#456080}
+.group-sheet ol {list-style:none;margin:0;padding:4px 12px}
+.group-sheet li+li {border-top:1px solid #e6ebf1}
+.group-sheet li>button,.group-sheet li>div {padding:12px 5px;background:white;border:0;text-align:left;width:100%;font:inherit;color:#192d46}
+.group-sheet li>button {cursor:grab}
+.group-sheet li>button[aria-pressed=true] {background:#e9f2ff;border-radius:6px;box-shadow:inset 3px 0 var(--admin-brand,#1654c7)}
+.group-sheet li span,.group-sheet li svg {color:#60758e}
+.group-sheet li b {font-weight:550;flex:1;overflow-wrap:anywhere}
+.group-transfer {margin:6px 12px 12px;border:1px dashed #6486b8;background:#f5f9fe;color:#164b94;padding:8px 12px;border-radius:8px;cursor:pointer}
+.phase-actions {flex-wrap:wrap;justify-content:flex-end}
+.phase-actions p {margin-right:auto}
+.stage-tabs {margin:20px 0 16px;padding:4px;background:#f1f5fa;border-radius:9px}
+.stage-tabs button {border-radius:7px;padding:8px 16px}
+.stage-tabs [aria-pressed=true] {background:var(--admin-brand,#1654c7);color:white}
+.stage-columns {display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px}
+.stage-standings,.stage-matches {min-width:0}
+.stage-standings th {background:#f5f8fc;color:#50647a;font-size:.86rem}
+.stage-matches .ops-match {margin:0;gap:6px;font-size:.93rem}
+.stage-matches .ops-match>span {flex:1 1 150px}
+.stage-matches .ops-score {font-size:.85rem;color:var(--admin-brand,#1654c7);cursor:pointer}
+.stage-note {font-size:.85rem;line-height:1.5}
+@media(max-width:950px){.stage-columns {grid-template-columns:1fr}}
+@media(max-width:650px){.sheet-heading,.ledger-toolbar {align-items:stretch;flex-direction:column}.ledger-tabs button{flex:1;white-space:normal;padding:10px 6px;font-size:.9rem}.attendance-line{grid-template-columns:1fr auto}.attendance-line select{grid-column:1/-1}.phase-actions{justify-content:flex-start}.teacher-pay-grid{grid-template-columns:1fr}.group-board{grid-template-columns:1fr}.ledger-search{max-width:none}}

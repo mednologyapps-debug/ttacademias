@@ -2,8 +2,8 @@ export type Player = { id:string; name:string; dni?:string; paid:boolean; group?
 export type EventInfo = { id:string; title:string; date:string; time:string; venue:string; capacity:number; studentPrice:number; publicPrice:number; participants:Player[] };
 export type SetScore = [number,number];
 export type Game = { id:string; a:string|null; b:string|null; sets:SetScore[] };
-export type Tournament = { event:EventInfo; phase:"groups"|"bracket"|"closed"; bestOf:3|5|7; groupGames:Game[]; rounds:Game[][] };
-export type Move = {kind:"start";event:EventInfo;bestOf:3|5|7} | {kind:"score";game:string;sets:SetScore[]} | {kind:"draw"} | {kind:"swap";from:number;to:number} | {kind:"close"};
+export type Tournament = { event:EventInfo; phase:"confirmed"|"groups"|"bracket"|"closed"; bestOf:3|5|7; groupGames:Game[]; rounds:Game[][] };
+export type Move = {kind:"confirm";event:EventInfo} | {kind:"start";bestOf:3|5|7} | {kind:"score";game:string;sets:SetScore[]} | {kind:"draw"} | {kind:"swap";from:number;to:number} | {kind:"close"};
 function requireThat(condition:unknown,message:string):asserts condition { if(!condition) throw new Error(message); }
 export const groupsOf = (t:Tournament) => [...new Set(t.event.participants.filter(p=>p.paid).map(p=>p.group!))].sort((a,b)=>a-b);
 export function winner(g:Game) {
@@ -25,7 +25,7 @@ export function validateSets(sets:SetScore[],bestOf:number) {
 }
 export function standings(t:Tournament,group?:number) {
   const games=group===undefined ? [...t.groupGames,...t.rounds.flat()] : t.groupGames;
-  return t.event.participants.filter(p=>p.paid && (group===undefined || p.group===group)).map(p=>{
+  const rows=t.event.participants.filter(p=>p.paid && (group===undefined || p.group===group)).map(p=>{
     let points=0, diff=0,played=0;
     const scores:string[]=[];
     for(const g of games) {
@@ -36,7 +36,8 @@ export function standings(t:Tournament,group?:number) {
       scores.push(sets.map(([a,b])=>a+"–"+b).join(" / "));
     }
     return {player:p,points,diff,played,scores};
-  }).sort((a,b)=>b.points-a.points || b.diff-a.diff || a.player.weight-b.player.weight || a.player.id.localeCompare(b.player.id));
+  });
+  return rows.some(r=>r.played)?rows.sort((a,b)=>b.points-a.points || b.diff-a.diff || a.player.weight-b.player.weight):rows;
 }
 function firstRound(t:Tournament):Game[] {
   const qualified=groupsOf(t).map(g=>standings(t,g).slice(0,2).map(r=>r.player.id));
@@ -61,16 +62,16 @@ function advance(t:Tournament) {
   t.rounds.push(next);
 }
 export function transition(current:Tournament|null, action:Move):Tournament {
-  if(action.kind==="start") {
+  if(action.kind==="confirm") {
     requireThat(!current,"El ranking ya se inició.");
     const e=action.event;
-    requireThat(e && typeof e.title==="string" && Array.isArray(e.participants) && e.participants.length<=512 && [3,5,7].includes(action.bestOf),"Datos del torneo inválidos.");
+    requireThat(e && typeof e.title==="string" && Array.isArray(e.participants) && e.participants.length<=512,"Datos del torneo inválidos.");
     const players=e.participants.filter(p=>p.paid);
     requireThat(players.length>=2 && players.every(p=>typeof p.id==="string" && p.id && typeof p.name==="string" && p.name.trim() && Number.isInteger(p.group) && p.group!>0),"Genera los grupos de todos los participantes con pago confirmado.");
     requireThat(new Set(players.map(p=>p.id)).size===players.length,"Hay participantes duplicados.");
     const documents=players.map(p=>p.dni).filter(Boolean);
     requireThat(new Set(documents).size===documents.length,"Un DNI solo puede competir una vez por ranking.");
-    const t:Tournament={event:e,phase:"groups",bestOf:action.bestOf,groupGames:[],rounds:[]};
+    const t:Tournament={event:e,phase:"confirmed",bestOf:3,groupGames:[],rounds:[]};
     for(const group of groupsOf(t)) {
       const ps=players.filter(p=>p.group===group);
       requireThat(ps.length>=2 && ps.length<=5,"Cada grupo requiere entre dos y cinco jugadores.");
@@ -80,6 +81,12 @@ export function transition(current:Tournament|null, action:Move):Tournament {
   }
   requireThat(current && current.phase!=="closed","El ranking está cerrado o aún no se inició.");
   const t=structuredClone(current);
+  if(action.kind==="start") {
+    requireThat(t.phase==="confirmed","Confirma los grupos antes de iniciar el ranking.");
+    requireThat([3,5,7].includes(action.bestOf),"Formato de partido inválido.");
+    t.phase="groups"; t.bestOf=action.bestOf; return t;
+  }
+  requireThat(t.phase!=="confirmed","Inicia el ranking antes de registrar resultados.");
   if(action.kind==="score") {
     const games=t.phase==="groups" ? t.groupGames : t.rounds.at(-1)!;
     const game=games.find(g=>g.id===action.game);
@@ -111,4 +118,34 @@ export function academyTable(events:Tournament[]) {
     row.points+=s.points; row.diff+=s.diff; row.events++;rows.set(key,row);
   }
   return [...rows.values()].sort((a,b)=>b.points-a.points || b.diff-a.diff || a.name.localeCompare(b.name,"es"));
+}
+
+export function arrangePlayers(players:Player[], source:string, target:{player:string}|{group:number}):Player[] {
+  const next=players.map(p=>({...p}));
+  const from=next.findIndex(p=>p.id===source && p.paid && p.group);
+  requireThat(from!==-1,"Selecciona un jugador del grupo.");
+  if("player" in target) {
+    const to=next.findIndex(p=>p.id===target.player && p.paid && p.group);
+    requireThat(to!==-1,"Selecciona el jugador que cambiará de posición.");
+    [next[from].group,next[to].group]=[next[to].group,next[from].group];
+    [next[from],next[to]]=[next[to],next[from]];
+  } else {
+    requireThat(next.some(p=>p.paid && p.group===target.group),"Grupo desconocido.");
+    if(next[from].group===target.group)return players;
+    requireThat(next.filter(p=>p.paid && p.group===target.group).length<5,"El grupo está lleno. Selecciona un jugador para intercambiar posiciones.");
+    requireThat(next.filter(p=>p.paid && p.group===next[from].group).length>1,"Para conservar el grupo, intercambia a su último jugador por otro.");
+    const member=next.splice(from,1)[0];
+    member.group=target.group;
+    next.push(member);
+  }
+  return next;
+}
+
+export function publicGroups(t:Tournament) {
+  return {id:t.event.id,title:t.event.title,groups:groupsOf(t).map(number=>({
+    number,players:t.event.participants.filter(p=>p.paid && p.group===number).map(p=>p.name)
+  }))};
+}
+export function groupLabel(n:number):string {
+  return (n>26?groupLabel(Math.floor((n-1)/26)):"")+String.fromCharCode(65+(n-1)%26);
 }

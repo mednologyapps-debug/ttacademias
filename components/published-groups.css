@@ -1,0 +1,7 @@
+.published-groups {padding:clamp(16px,3vw,28px);margin-block:16px;color:#172d46}
+.published-groups h2 {margin:0 0 12px}
+.published-groups summary {padding:12px 0;cursor:pointer;font-weight:650}
+.published-groups details>div {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px}
+.published-groups article {background:#f3f7fc;border-radius:10px;padding:14px}
+.published-groups h3 {margin:0 0 8px}
+.published-groups ol {padding-left:1.4rem;margin:0;line-height:1.7}

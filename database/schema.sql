@@ -97,7 +97,7 @@ CREATE TABLE memberships (
 ) ENGINE=InnoDB;
 CREATE TABLE payments (
   id CHAR(36) PRIMARY KEY, academy_id CHAR(36) NOT NULL, student_id CHAR(36) NOT NULL,
-  purpose ENUM('membership','ranking') NOT NULL, reference_id CHAR(36) NOT NULL,
+  purpose ENUM('membership','ranking','enrollment') NOT NULL, reference_id CHAR(36) NOT NULL,
   amount DECIMAL(10,2) NOT NULL, currency CHAR(3) NOT NULL DEFAULT 'PEN',
   status ENUM('pending','paid','failed','refunded') NOT NULL DEFAULT 'pending',
   provider VARCHAR(40) NULL, provider_reference VARCHAR(160) NULL,

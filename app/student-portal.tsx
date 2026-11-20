@@ -1,5 +1,5 @@
 "use client";
-import {useStandings,StandingsTable} from "@/components/academy-standings";
+import {useStandings,StandingsTable,PublishedGroups} from "@/components/academy-standings";
 
 import Modal from "@/components/modal";
 
@@ -177,7 +177,7 @@ function ClassesView({ onToast, attendance, onMarkAttendance }: { onToast: (mess
 }
 
 function RankingsView({ onToast, academyName }: { onToast: (message: string) => void; academyName: string }) {
-  const {result,error}=useStandings();
+  const {result,error}=useStandings(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [paidIds, setPaidIds] = useState<string[]>(["weekly-14"]);
   const [registeredIds, setRegisteredIds] = useState<string[]>(["weekly-14"]);
@@ -202,7 +202,7 @@ function RankingsView({ onToast, academyName }: { onToast: (message: string) => 
       <section className="section-block ranking-event-block"><div className="section-heading"><h2>Rankings activos</h2><span className="muted">{events.length} competencias</span></div>
         <div className="active-ranking-list">{events.map((item) => <article className="card active-ranking-card" key={item.id}><div className="active-ranking-icon"><Trophy size={20} /></div><div className="active-ranking-copy"><span className="registered-label"><i />{item.state}</span><h3>{item.title}</h3><p><CalendarDays size={14} />{item.date}</p><p><MapPin size={14} />{item.venue}</p><div className="active-ranking-meta"><span>{item.enrolled} / {item.capacity} inscritos</span><strong>Alumno {item.memberPrice}</strong></div></div><button className="button button-primary ranking-detail-link" onClick={() => setSelected(item.id)}>Ver detalles <ChevronRight size={16} /></button></article>)}</div>
       </section>
-      <StandingsTable rows={result?.table} error={error}/>
+      <PublishedGroups events={result?.competitions}/><StandingsTable rows={result?.table} error={error}/>
     </> : <>
       <button className="back-link ranking-back" onClick={() => { setSelected(null); setPaying(false); }}><ChevronLeft size={17} /> Volver a rankings activos</button>
       <div className="ranking-detail-layout"><article className="card tournament-detail-card"><span className={`registered-label ${registered ? "" : "pending"}`}><i />{registered ? "Inscrito · pago confirmado" : paid ? "Pago confirmado" : "Inscripción abierta"}</span><div className="ranking-detail-title"><div><span className="eyebrow">RANKING DE ACADEMIA</span><h2>{event.title}</h2></div><div className="trophy-badge"><Trophy size={20} /></div></div><p className="ranking-description">Compite con estudiantes de la academia y suma puntos para la tabla institucional.</p><div className="event-info"><span><CalendarDays size={15} />{event.date}</span><span><MapPin size={15} />{event.venue}</span></div><div className="confirmed-slots"><span><Users size={16} /> Cupos disponibles</span><strong>{event.enrolled} / {event.capacity} inscritos</strong><div className="progress-track"><span style={{ width: `${event.enrolled / event.capacity * 100}%` }} /></div></div><div className="ranking-prices"><div><span>Tarifa general</span><del>{event.publicPrice}</del></div><div><span>Tarifa estudiante</span><strong>{event.memberPrice}</strong></div></div>

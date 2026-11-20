@@ -11,7 +11,7 @@ function event(groups) {
   return {id: "test", title: "Copa", participants, capacity: participants.length, date:"2026-11-20",time:"18:00",venue:"Sede",studentPrice:0,publicPrice:0};
 }
 
-const start = groups => transition(null, { kind: "start", bestOf: 3, event: event(groups) });
+const start = groups => transition(transition(null, { kind:"confirm", event:event(groups) }), {kind:"start",bestOf:3});
 const score = (state, game, sets = [[11, 5], [11, 8]]) => transition(state, {kind: "score", game: game.id, sets});
 function playGroups(state) {
   return state.groupGames.reduce((current, game) => score(current, game), state);
@@ -79,4 +79,45 @@ test("Dos cursos con roles y tarifas distintas cuentan solo cobros registrados",
   assert.deepEqual(courseTotals(f,"base"),{income:30000,fees:20000,balance:10000});
   assert.deepEqual(courseTotals(f,"comp"),{income:0,fees:5000,balance:-5000});
   assert.throws(()=>validateFinance({...f,contracts:[...f.contracts,f.contracts[0]]}));
+});
+
+test("La confirmación fija la composición y precede al inicio y a los resultados",async()=>{
+  const {arrangePlayers}=await import("../lib/tournament.ts");
+  const e=event(2);
+  const original=e.participants;
+  e.participants=arrangePlayers(original,"0",{player:"3"});
+  assert.deepEqual(e.participants.filter(p=>p.group===2).map(p=>p.id),["0","4","5"]);
+  assert.equal(original[0].group,1);
+  assert.throws(()=>transition(null,{kind:"start",bestOf:3,event:e}));
+  const fixed=transition(null,{kind:"confirm",event:e});
+  assert.equal(fixed.phase,"confirmed");
+  assert.throws(()=>transition(fixed,{kind:"score",game:"g0",sets:[[11,0],[11,0]]}));
+  assert.throws(()=>transition(fixed,{kind:"confirm",event:e}));
+  const playing=transition(fixed,{kind:"start",bestOf:5});
+  assert.deepEqual(standings(playing,1).map(r=>r.player.id),["3","1","2"]);
+  assert.throws(()=>transition(playing,{kind:"start",bestOf:3}));
+  const moved=arrangePlayers(e.participants,"3",{group:2});
+  assert.equal(moved.filter(p=>p.group===2).length,4);
+  const invalid=arrangePlayers(moved,"1",{group:2});
+  assert.throws(()=>transition(null,{kind:"confirm",event:{...e,participants:invalid}}));
+});
+test("Solo una falta confirmada reduce el honorario y el prorrateo conserva los céntimos",async()=>{
+  const {courseLessons,teacherPay,uniqueIncome}=await import("../lib/teaching-ledger.ts");
+  const c={id:"c",name:"Saque",starts:"2026-11-01",ends:"2026-11-16",slots:["Lun · 8:00 AM"],teachers:["A","B"]};
+  const lessons=courseLessons(c,[],[]);
+  assert.equal(lessons.length,3);
+  const plan={teacher:"A",courseId:"c",role:"Principal",cents:10000};
+  const now=Date.parse("2026-11-10T10:00:00-05:00");
+  const mark={courseId:"c",teacher:"A",lessonId:lessons[0].id,state:"missed",startsAt:lessons[0].startsAt};
+  let detail=teacherPay(c,"A",plan,lessons,[mark],now);
+  assert.deepEqual(detail.entries.map(s=>s.state),["missed","pending","future"]);
+  assert.deepEqual(detail.entries.map(s=>s.share),[3334,3333,3333]);
+  assert.equal(detail.net,6666);
+  assert.equal(teacherPay(c,"B",{...plan,teacher:"B",role:"De apoyo"},lessons,[mark],now).discount,0);
+  assert.equal(teacherPay(c,"A",plan,lessons,[{...mark,state:"taught"}],now).net,10000);
+  const official=[{...lessons[0],status:"cancelled",teacher:"A"},{...lessons[1],status:"completed",teacher:"A"}];
+  assert.equal(courseLessons(c,official,[]).length,1);
+  assert.equal(teacherPay(c,"A",plan,courseLessons(c,official,[]),[],now).entries[0].state,"taught");
+  const receipts=[{id:"1",source:"Izipay",reference:"OP9"},{id:"2",source:"Izipay",reference:"OP9"},{id:"3",source:"Manual"}];
+  assert.equal(uniqueIncome(receipts).length,2);
 });

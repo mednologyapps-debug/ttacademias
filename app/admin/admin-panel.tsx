@@ -1,9 +1,11 @@
 "use client";
 
 import {StandingsTable} from "@/components/academy-standings";
-import {academyTable} from "@/lib/tournament";
+import {academyTable,groupLabel} from "@/lib/tournament";
+import GroupBoard from "./group-board";
 import TournamentPanel from "./tournament-panel";
 import CourseLedger, { AssignmentFields, type DraftFee } from "./course-ledger";
+import {slotTime} from "@/lib/teaching-ledger";
 import type { Finance } from "@/lib/course-finance";
 import type { Tournament, Move } from "@/lib/tournament";
 import EnrollmentPanel from "./enrollment-panel";
@@ -79,7 +81,12 @@ export default function AdminPanel() {
   const [editingTeacher,setEditingTeacher] = useState<string|null>(null);
   const [fees,setFees] = useState<DraftFee[]>([]);
   const terms=ops.finance?.value as Finance|undefined;
-  const finance:Finance={courses,teachers:rows.Profesores,contracts:terms?.contracts||[],receipts:terms?.receipts||[]};
+  const finance:Finance={...terms,courses,teachers:rows.Profesores,contracts:terms?.contracts||[],receipts:terms?.receipts||[]};
+  const savedLessons=(finance.lessons||[]).filter(s=>s.status!=="cancelled");
+  const classRows=[...savedLessons.map(s=>{
+    const course=courses.find(c=>c.id===s.courseId);
+    return [s.title,course?.name||"",new Date(s.startsAt).toLocaleString("es-PE",{timeZone:"America/Lima",dateStyle:"medium",timeStyle:"short"}),s.teacher||"",String(course?.students.length||0)+" alumnos"];
+  }),...rows.Clases];
   function applyFinance(data:Finance) {
     setCourses(data.courses);
     setRows(old=>({...old,Profesores:data.teachers,Cursos:data.courses.map(courseToRow)}));
@@ -110,7 +117,7 @@ export default function AdminPanel() {
   const rankingRows=rankingList.map(r=>{
     const t=ops["event:"+r.id]?.value as Tournament|undefined;
     const row=rankingToRow(t?.event||r);
-    if(t)row[3]=t.phase==="closed"?"Cerrado":"En juego";
+    if(t)row[3]=t.phase==="closed"?"Cerrado":t.phase==="confirmed"?"Grupos confirmados":"En juego";
     return row;
   });
   const [search, setSearch] = useState("");
@@ -195,7 +202,7 @@ export default function AdminPanel() {
   }, [rows.Alumnos]);
   const filteredRows = (() => {
     if (!(section in rows)) return [];
-    const table = section==="Rankings"?rankingRows:rows[section as keyof typeof rows];
+    const table = section==="Rankings"?rankingRows:section==="Clases"?classRows:rows[section as keyof typeof rows];
     return table.filter((row) => row.join(" ").toLowerCase().includes(search.toLowerCase()));
   })();
   function notify(message: string) {
@@ -233,7 +240,10 @@ export default function AdminPanel() {
         return {...c,teachers:fees.some(f=>f.courseId===c.id)?[...names,name]:names};
       });
       const contracts=[...finance.contracts.filter(c=>c.teacher!==editingTeacher),...fees.map(f=>({courseId:f.courseId,teacher:name,role:f.role,cents:Math.round(Number(f.amount)*100)}))];
-      if(!await persist("finance",{value:{...finance,teachers:nextTeachers,courses:nextCourses,contracts}}))return;
+      const attendance=(finance.attendance||[]).map(m=>m.teacher===editingTeacher?{...m,teacher:name}:m);
+      if(attendance.some(m=>m.teacher===name && !fees.some(f=>f.courseId===m.courseId))){notify("Este curso tiene asistencia docente registrada. Conserva su asignación.");return;}
+      const lessons=(finance.lessons||[]).map(s=>s.teacher===editingTeacher?{...s,teacher:name}:s);
+      if(!await persist("finance",{value:{...finance,teachers:nextTeachers,courses:nextCourses,contracts,attendance,lessons}}))return;
 
     } else if (section === "Cursos") {
       if (!courseStudents.length || !courseSlots.length || !coursePrice || !courseStarts || !courseEnds) { notify("Completa participantes, precio, fechas y al menos un horario"); return; }
@@ -251,8 +261,13 @@ export default function AdminPanel() {
       if (!dateOptions.includes(classDate)) { notify("Elige una de las fechas programadas dentro de la vigencia del curso"); return; }
       const weekday = weekdayCodes[new Date(`${classDate}T12:00:00`).getDay()];
       if (!(classTime.startsWith(`${weekday} ·`) || classTime.startsWith(`${weekday} `))) { notify("El horario no corresponde a la fecha elegida"); return; }
-      const row = [formTitle, course.name, `${formatAdminDate(classDate)} · ${classTime}`, classTeacher, `${course.students.length} alumnos`];
-      setRows((current) => ({ ...current, Clases: [row, ...current.Clases] }));
+      const time=slotTime(classTime);
+      if(!time){notify("Elige un horario válido.");return;}
+      const local=classDate+"T"+time;
+      const other=(finance.lessons||[]).find(s=>s.courseId===course.id && s.id===local);
+      if(other && other.status!=="cancelled"){notify("Ya hay una clase registrada en ese horario.");return;}
+      const lesson={id:local,courseId:course.id,title:formTitle,startsAt:local+":00-05:00",teacher:classTeacher};
+      if(!await persist("finance",{value:{...finance,lessons:[...(finance.lessons||[]).filter(s=>s!==other),lesson]}}))return;
     } else if (section === "Rankings") {
       if (!rankingDate || !rankingVenue || !rankingStudentPrice || !rankingPublicPrice || !rankingCapacity) { notify("Completa fecha, sede, precios y aforo"); return; }
       const editedRanking = rankings.find((item) => item.id === editingRankingId);
@@ -291,7 +306,7 @@ export default function AdminPanel() {
     notify("Horario confirmado y actualizado");
   }
   function openEditRecord(target: Section, row: string[]) {
-    const index = (rows[target as keyof typeof rows] as string[][]).indexOf(row);
+    const index = (target==="Clases"?classRows:rows[target as keyof typeof rows] as string[][]).indexOf(row);
     if (target === "Cursos") {
       const course = courses[index];
       if (!course) return;
@@ -311,11 +326,21 @@ export default function AdminPanel() {
   }
   async function confirmDeleteRecord() {
     if (!deleteRecord) return;
-    const { section: target, index } = deleteRecord;
+    const { section: target } = deleteRecord;
+    let index=deleteRecord.index;
+    if(target==="Clases"){
+      const lesson=savedLessons[index];
+      if(lesson){
+        if(finance.attendance?.some(m=>m.courseId===lesson.courseId && m.lessonId===lesson.id)){notify("La clase tiene asistencia docente registrada.");return;}
+        if(await persist("finance",{value:{...finance,lessons:finance.lessons?.map(s=>s===lesson?{...s,status:"cancelled"}:s)}}))setDeleteRecord(null);
+        return;
+      }
+      index-=savedLessons.length;
+    }
     if(target==="Cursos" || target==="Profesores") {
       const id=courses[index]?.id, teacher=rows.Profesores[index]?.[0];
-      if(target==="Cursos" && (finance.receipts.some(r=>r.courseId===id)||finance.contracts.some(f=>f.courseId===id)) || target==="Profesores" && finance.contracts.some(f=>f.teacher===teacher)){
-        notify("El registro tiene cobros u honorarios asociados.");return;
+      if(target==="Cursos" && (finance.receipts.some(r=>r.courseId===id)||finance.contracts.some(f=>f.courseId===id)||finance.lessons?.some(l=>l.courseId===id)||finance.attendance?.some(m=>m.courseId===id)) || target==="Profesores" && (finance.contracts.some(f=>f.teacher===teacher)||finance.lessons?.some(l=>l.teacher===teacher)||finance.attendance?.some(m=>m.teacher===teacher))){
+        notify("El registro tiene clases, cobros u honorarios asociados.");return;
       }
       const next=target==="Cursos"?{...finance,courses:courses.filter(c=>c.id!==id)}:{...finance,teachers:rows.Profesores.filter(t=>t[0]!==teacher),courses:courses.map(c=>({...c,teachers:c.teachers.filter(n=>n!==teacher)}))};
       if(await persist("finance",{value:next}))setDeleteRecord(null);return;
@@ -325,10 +350,20 @@ export default function AdminPanel() {
     if (target === "Alumnos") { const name = rows.Alumnos[index]?.[0]; if (name) { const nextCourses = courses.map((course) => ({ ...course, students: course.students.filter((student) => student !== name) })); setCourses(nextCourses); setRows((current) => ({ ...current, Cursos: nextCourses.map(courseToRow) })); } }
     setDeleteRecord(null); notify("Registro eliminado");
   }
-  function saveGenericEdit(event: FormEvent<HTMLFormElement>) {
+  async function saveGenericEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editRecord) return;
-    const { section: target, index, values } = editRecord;
+    const { section: target, values } = editRecord;
+    let index=editRecord.index;
+    if(target==="Clases"){
+      const lesson=savedLessons[index];
+      if(lesson){
+        if(!values[0].trim()){notify("Ingresa el nombre de la clase.");return;}
+        if(await persist("finance",{value:{...finance,lessons:finance.lessons?.map(s=>s===lesson?{...s,title:values[0].trim()}:s)}}))setEditRecord(null);
+        return;
+      }
+      index-=savedLessons.length;
+    }
     const oldName = (rows[target as keyof typeof rows] as string[][])[index]?.[0];
     setRows((current) => ({ ...current, [target]: (current[target as keyof typeof current] as string[][]).map((row, rowIndex) => rowIndex === index ? values : row) }));
     if (target === "Alumnos" && oldName && values[0] !== oldName) {
@@ -362,7 +397,7 @@ export default function AdminPanel() {
               <button key={label} aria-label={label} aria-current={section === label ? "page" : undefined}
                 onClick={() => changeSection(label)}>
                 <Icon size={20} /><span className="rail-caption">{label}</span>
-                {label === "Pagos" && <i className="nav-notice rail-caption">3</i>}
+                
               </button>
             ))}
           </div>
@@ -400,17 +435,22 @@ export default function AdminPanel() {
             const matches=rows.Alumnos.filter(row=>row[0]===p.name);
             return matches.length===1?{...p,dni:matches[0][1]}:p;
           })}} t={competition} busy={!opsReady||saving} onMove={action=>persist(key,{action})}/></>;
-        })() : section === "Mi academia" ? <>
+        })() : section==="Pagos"?<>
+          <div className="admin-page-heading"><h1>Pagos</h1></div>
+          <CourseLedger data={finance} busy={!opsReady||saving}
+            mark={(mark,state)=>persist("finance",{value:{...finance,attendance:[...(finance.attendance||[]).filter(m=>m.teacher!==mark.teacher || m.courseId!==mark.courseId || m.lessonId!==mark.lessonId),{...mark,state}]}})}
+            save={receipt=>persist("finance",{value:{...finance,receipts:[...finance.receipts,receipt]}})}/>
+        </> : section === "Mi academia" ? <>
           <div className="admin-page-heading"><div><span className="admin-eyebrow">PERSONALIZACIÓN</span><h1>Mi academia</h1><p>Configura la identidad que verán tus alumnos en el subdominio.</p></div><div className="tenant-domain"><ShieldCheck size={16} /> lawntennis.ttacademias.com</div></div><div className="settings-layout"><section className="admin-panel-card academy-settings-card"><div className="admin-card-heading"><div><h2>Marca y portal</h2><p>Estos datos personalizan el portal de estudiantes.</p></div></div><label className="admin-form-label">Nombre de la academia<input value={academyName} onChange={(e) => setAcademyName(e.target.value)} /></label><label className="admin-form-label">URL del logo<input value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="https://.../logo.png" /></label><label className="admin-form-label">Color principal<div className="color-picker-row"><input type="color" value={brandColor} onChange={(e) => setBrandColor(e.target.value)} /><input value={brandColor} onChange={(e) => setBrandColor(e.target.value)} /></div></label><button className="admin-primary-button" onClick={() => void saveAcademySettings()}><CheckCircle2 size={16} /> Guardar cambios</button><p className="admin-form-hint">El logo y el color se guardan y se aplican al subdominio de esta academia.</p></section><section className="admin-panel-card portal-preview-card"><div className="admin-card-heading"><div><h2>Vista previa del estudiante</h2><p>Ejemplo del encabezado de tu portal</p></div></div><div className="portal-preview" style={{ ["--preview-brand" as string]: brandColor } as React.CSSProperties}><div className="preview-header"><span>{logoUrl ? <img src={logoUrl} alt="" /> : <Activity size={18} />}</span><strong>{academyName}</strong></div><div className="preview-welcome"><small>MIÉRCOLES, 18 NOV</small><h3>Hola, Mateo</h3><p>Sede Miraflores</p></div><div className="preview-class"><span>CLASE DE HOY</span><strong>Control de Saques &amp; Topspin</strong><button>Confirmar asistencia</button></div></div></section></div>
         </> : <>
           <div className="admin-page-heading"><div><h1>{section}</h1><p>{sectionDescription(section)}</p></div>{actionLabel[section] && <button className="admin-primary-button" onClick={() => openCreate(section)}><Plus size={17} />{actionLabel[section]}</button>}</div>
           {section === "Rankings" && <StandingsTable rows={opsReady?academyTable(persistedEvents):undefined} error={!!opsError}/>}
-          {section === "Pagos" && <CourseLedger data={finance} busy={!opsReady||saving} save={receipt=>persist("finance",{value:{...finance,receipts:[...finance.receipts,receipt]}})}/>}
+
           {section === "Alumnos" && <EnrollmentPanel key="requests"/>}
           {section === "Cursos" && <EnrollmentPanel key="offers" courses={courses}/>}
           <div className="admin-panel-card admin-table-card"><div className="admin-list-toolbar"><label className="admin-search"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Buscar en ${section.toLowerCase()}...`} /></label><button onClick={() => notify("Filtros disponibles próximamente")}><SlidersHorizontal size={16} /> Filtros</button><span>{filteredRows.length} registros</span></div>
-          <div className="admin-table-wrap"><table><thead><tr>{(section === "Alumnos" ? ["ALUMNO", "EDAD", "NIVEL", "CORREO", "CELULAR", "MATRÍCULA"] : section === "Profesores" ? ["PROFESOR", "FECHA NACIMIENTO", "NIVELES QUE ENSEÑA", "CORREO", "CELULAR", "BLOQUES DISPONIBLES"] : section === "Cursos" ? ["CURSO", "NIVEL · HORARIO", "ALUMNOS MATRICULADOS", "PROFESORES", "VIGENCIA", "COSTO TOTAL"] : section === "Clases" ? ["CLASE / SESIÓN", "CURSO", "FECHA Y HORA", "PROFESOR", "ALUMNOS"] : section === "Rankings" ? ["RANKING", "FECHA", "CUPOS", "ESTADO"] : section === "Pagos" ? ["ALUMNO", "CONCEPTO", "MONTO", "ESTADO"] : ["AVISO", "FECHA", "DESTINATARIOS", "ESTADO"]).map((head) => <th scope="col" key={head}>{head.charAt(0) + head.slice(1).toLocaleLowerCase("es-PE")}</th>)}<th /></tr></thead><tbody>{filteredRows.map((row, index) => {
-            const sourceIndex = (section==="Rankings"?rankingRows:rows[section as keyof typeof rows] as string[][]).indexOf(row);
+          <div className="admin-table-wrap"><table><thead><tr>{(section === "Alumnos" ? ["ALUMNO", "EDAD", "NIVEL", "CORREO", "CELULAR", "MATRÍCULA"] : section === "Profesores" ? ["PROFESOR", "FECHA NACIMIENTO", "NIVELES QUE ENSEÑA", "CORREO", "CELULAR", "BLOQUES DISPONIBLES"] : section === "Cursos" ? ["CURSO", "NIVEL · HORARIO", "ALUMNOS MATRICULADOS", "PROFESORES", "VIGENCIA", "COSTO TOTAL"] : section === "Clases" ? ["CLASE / SESIÓN", "CURSO", "FECHA Y HORA", "PROFESOR", "ALUMNOS"] : section === "Rankings" ? ["RANKING", "FECHA", "CUPOS", "ESTADO"] : ["AVISO", "FECHA", "DESTINATARIOS", "ESTADO"]).map((head) => <th scope="col" key={head}>{head.charAt(0) + head.slice(1).toLocaleLowerCase("es-PE")}</th>)}<th /></tr></thead><tbody>{filteredRows.map((row, index) => {
+            const sourceIndex = (section==="Rankings"?rankingRows:section==="Clases"?classRows:rows[section as keyof typeof rows] as string[][]).indexOf(row);
             const cells = section === "Alumnos" ? [row[0], String(calculateAge(row[2])), row[3], row[4], row[5], row[6]] : section === "Cursos" ? [row[0], `${row[1]} · ${row[6]}`, row[2], row[3], row[4], row[5]] : row;
             return <tr key={`${row[0]}-${index}`} className={section === "Cursos" ? "course-list-row" : ""}>{cells.map((cell, cellIndex) => <td key={cellIndex}>{cellIndex === 0 && section === "Cursos" ? <button className="course-title-link" onClick={() => setCourseStudentsView(courses[sourceIndex] || null)}>{cell}<ChevronRight size={14}/></button> : cellIndex === 0 ? <strong>{cell}</strong> : section === "Alumnos" && cellIndex === 5 ? <button className="enrollment-view-button" onClick={() => setStudentDetails(row)}>Ver matrícula <ChevronRight size={13}/></button> : section === "Cursos" && cellIndex === 2 ? <button className="course-participants-button" onClick={() => setCourseStudentsView(courses[sourceIndex] || null)}>{cell} <ChevronRight size={13}/></button> : section === "Alumnos" && cellIndex === 1 ? <span className="age-value">{cell} años</span> : cellIndex === row.length - 1 && !["Alumnos", "Profesores", "Cursos", "Clases"].includes(section) ? <span className={`table-status ${cell.toLowerCase().includes("pendiente") || cell.toLowerCase().includes("renovar") ? "warning" : ""}`}><i />{cell}</span> : cell}</td>)}<td><div className="admin-row-actions">{section === "Cursos" && <button className="row-action" title="Ver o editar horario" aria-label={`Horario de ${row[0]}`} onClick={() => openCourseSchedule(courses[sourceIndex] || null)}><CalendarClock size={15} /></button>}{section === "Rankings" && <button className="row-action manage" title="Gestionar ranking" aria-label={`Gestionar ${row[0]}`} onClick={() => setActiveRankingId(rankingList[sourceIndex]?.id || null)}><Users size={15} /></button>}<button disabled={section==="Rankings" && !!ops["event:"+rankingList[sourceIndex]?.id]} className="row-action" title="Editar" aria-label={`Editar ${row[0]}`} onClick={() => openEditRecord(section, row)}><Pencil size={14} /></button><button disabled={section==="Rankings" && !!ops["event:"+rankingList[sourceIndex]?.id]} className="row-action delete" title="Eliminar" aria-label={`Eliminar ${row[0]}`} onClick={() => setDeleteRecord({ section, index: sourceIndex, name: row[0] })}><Trash2 size={14} /></button></div></td></tr>;
           })}</tbody></table>{filteredRows.length === 0 && <div className="admin-empty-state">No encontramos resultados con esa búsqueda.</div>}</div></div>
@@ -456,7 +496,7 @@ export default function AdminPanel() {
         <div className="admin-modal-actions"><button type="button" className="admin-secondary-button" onClick={() => { setDialog(false); setEditingCourseId(null); setEditingRankingId(null); }}>Cancelar</button><button type="submit" disabled={(section==="Profesores" || section==="Cursos") && (!opsReady||saving)} className="admin-primary-button"><Plus size={16} />{section === "Cursos" ? editingCourseId ? "Guardar cambios" : "Crear curso" : section === "Clases" ? "Crear clase" : section === "Rankings" ? editingRankingId ? "Guardar cambios" : "Crear ranking" : "Guardar"}</button></div>
       </form></Modal>}
     {scheduleEditor && <Modal className="admin-form-modal course-modal schedule-editor-modal" labelledBy="schedule-editor-title" notice={toast} onDismiss={() => setScheduleEditor(null)}><div className="admin-modal-heading"><div><span className="admin-eyebrow">HORARIO SEMANAL</span><h2 id="schedule-editor-title">{scheduleEditor.step === "edit" ? "Ver y editar horario" : "Confirma el horario"}</h2><p>{scheduleEditor.step === "edit" ? "Marca bloques de dos horas. Revisa los cambios antes de aplicarlos." : "Verifica los días y horas que quedarán guardados en el curso."}</p></div><button className="admin-icon-button" aria-label="Cerrar" onClick={() => setScheduleEditor(null)}><X size={18} /></button></div>{scheduleEditor.step === "edit" ? <><div className="course-calendar-scroll"><div className="course-calendar"><div className="course-calendar-corner">INICIO</div>{["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day) => <div className="course-weekday" key={day}>{day}</div>)}{twoHourBlocks.map((time) => <div className="course-calendar-row" key={time}><div className="course-time-label">{time}<small>2 horas</small></div>{["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day) => { const key = `${day} · ${time}`; const selected = scheduleEditor.draft.includes(key); return <button key={key} type="button" aria-label={`${day}, ${time}`} aria-pressed={selected} className={`course-slot ${selected ? "selected" : ""}`} onClick={() => setScheduleEditor((current) => current ? { ...current, draft: selected ? current.draft.filter((slot) => slot !== key) : [...current.draft, key] } : current)}>{selected ? <CheckCircle2 size={14} /> : <Plus size={12} />}</button>; })}</div>)}</div></div><div className="teacher-calendar-footer"><span>{scheduleEditor.draft.length} bloques seleccionados</span><strong>{scheduleEditor.draft.length * 2} h / semana</strong></div><div className="admin-modal-actions"><button className="admin-secondary-button" onClick={() => setScheduleEditor(null)}>Cancelar</button><button className="admin-primary-button" onClick={confirmCourseSchedule}>Revisar cambios <ChevronRight size={16} /></button></div></> : <><div className="schedule-doublecheck"><span><CheckCircle2 size={20} /></span><div><strong>{scheduleEditor.draft.length} bloques · {scheduleEditor.draft.length * 2} horas semanales</strong><p>{scheduleEditor.draft.join(" · ")}</p></div></div><p className="admin-form-hint">Al confirmar, estas franjas definirán las fechas y horas disponibles para programar clases. Puedes volver a editarlas después.</p><div className="admin-modal-actions"><button className="admin-secondary-button" onClick={() => setScheduleEditor({ ...scheduleEditor, step: "edit" })}>Volver a editar</button><button className="admin-primary-button" onClick={confirmCourseSchedule}><Check size={16} />Confirmar horario</button></div></>}</Modal>}
-    {editRecord && <Modal className="admin-form-modal generic-edit-modal" label="Editar registro" notice={toast} onDismiss={() => setEditRecord(null)}><div className="admin-modal-heading"><div><span className="admin-eyebrow">{editRecord.section.toUpperCase()}</span><h2>Editar registro</h2><p>Actualiza los datos y guarda los cambios.</p></div><button className="admin-icon-button" aria-label="Cerrar" onClick={() => setEditRecord(null)}><X size={18} /></button></div><form onSubmit={saveGenericEdit}>{editRecord.values.map((value, index) => <label className="admin-form-label" key={index}>{getColumnLabels(editRecord.section, editRecord.values)[index] || `Dato ${index + 1}`}<input value={value} onChange={(e) => setEditRecord((current) => current ? { ...current, values: current.values.map((item, itemIndex) => itemIndex === index ? e.target.value : item) } : current)} /></label>)}<div className="admin-modal-actions"><button type="button" className="admin-secondary-button" onClick={() => setEditRecord(null)}>Cancelar</button><button className="admin-primary-button" type="submit"><Check size={16} />Guardar cambios</button></div></form></Modal>}
+    {editRecord && <Modal className="admin-form-modal generic-edit-modal" label="Editar registro" notice={toast} onDismiss={() => setEditRecord(null)}><div className="admin-modal-heading"><div><span className="admin-eyebrow">{editRecord.section.toUpperCase()}</span><h2>Editar registro</h2><p>Actualiza los datos y guarda los cambios.</p></div><button className="admin-icon-button" aria-label="Cerrar" onClick={() => setEditRecord(null)}><X size={18} /></button></div><form onSubmit={saveGenericEdit}>{editRecord.values.map((value, index) => <label className="admin-form-label" key={index}>{getColumnLabels(editRecord.section, editRecord.values)[index] || `Dato ${index + 1}`}<input readOnly={editRecord.section==="Clases" && !!savedLessons[editRecord.index] && index!==0} value={value} onChange={(e) => setEditRecord((current) => current ? { ...current, values: current.values.map((item, itemIndex) => itemIndex === index ? e.target.value : item) } : current)} /></label>)}<div className="admin-modal-actions"><button type="button" className="admin-secondary-button" onClick={() => setEditRecord(null)}>Cancelar</button><button className="admin-primary-button" type="submit"><Check size={16} />Guardar cambios</button></div></form></Modal>}
     {studentDetails && <Modal className="admin-form-modal enrollment-details-modal" labelledBy="student-enrollment-title" notice={toast} onDismiss={() => setStudentDetails(null)}><div className="admin-modal-heading"><div><span className="admin-eyebrow">DETALLE DE MATRÍCULA</span><h2 id="student-enrollment-title">{studentDetails[0]}</h2><p>DNI {studentDetails[1]} · {calculateAge(studentDetails[2])} años · Nivel {studentDetails[3]}</p></div><button className="admin-icon-button" aria-label="Cerrar" onClick={() => setStudentDetails(null)}><X size={18}/></button></div>{courses.filter((course) => course.students.includes(studentDetails[0])).length ? <div className="enrollment-course-list">{courses.filter((course) => course.students.includes(studentDetails[0])).map((course) => <article className="enrollment-course-card" key={course.id}><div className="enrollment-course-heading"><div><span>CURSO MATRICULADO</span><h3>{course.name}</h3></div><b>{course.level}</b></div><div className="enrollment-course-meta"><div><small>Vigencia hasta</small><strong>{formatLongDate(course.ends)}</strong></div><div><small>Cobrado a este alumno</small><strong>S/ {(finance.receipts.filter(r=>r.courseId===course.id && r.student===studentDetails[0]).reduce((n,r)=>n+r.cents,0)/100).toFixed(2)}</strong></div><div><small>Costo del curso</small><strong>S/. {Number(course.price).toFixed(2)}</strong></div></div><p className="enrollment-course-schedule">Horario: {course.slots.join(" · ")}</p></article>)}</div> : <div className="course-students-empty">Este alumno aún no está matriculado en un curso.</div>}<div className="admin-modal-actions"><button className="admin-primary-button" onClick={() => setStudentDetails(null)}>Listo</button></div></Modal>}
     {courseStudentsView && <Modal className="admin-form-modal course-students-modal" labelledBy="course-students-title" notice={toast} onDismiss={() => setCourseStudentsView(null)}><div className="admin-modal-heading"><div><span className="admin-eyebrow">DETALLE DEL CURSO</span><h2 id="course-students-title">{courseStudentsView.name}</h2><p>{courseStudentsView.students.length} alumnos · Nivel {courseStudentsView.level}</p></div><button className="admin-icon-button" aria-label="Cerrar" onClick={() => setCourseStudentsView(null)}><X size={18}/></button></div><div className="course-detail-summary"><div><small>Profesores</small><strong>{courseStudentsView.teachers.join(", ") || "Sin asignar"}</strong></div><div><small>Vigencia</small><strong>{formatLongDate(courseStudentsView.starts)} – {formatLongDate(courseStudentsView.ends)}</strong></div><div><small>Costo</small><strong>S/. {Number(courseStudentsView.price).toFixed(2)}</strong></div><div><small>Horario semanal</small><strong>{courseStudentsView.slots.join(" · ") || "Sin horario"}</strong></div></div><div className="course-students-label"><Users size={16}/> Alumnos matriculados</div><div className="course-student-list">{courseStudentsView.students.length ? courseStudentsView.students.map((name, i) => <article className="course-student-item" key={`${name}-${i}`}><span className="course-student-avatar">{name.split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><strong>{name}</strong><small>{courseStudentsView.level}</small></div><span className="course-student-schedule">{courseStudentsView.slots.join(" · ")}</span></article>) : <div className="course-students-empty">Aún no hay alumnos matriculados.</div>}</div><div className="admin-modal-actions"><button className="admin-primary-button" onClick={() => setCourseStudentsView(null)}>Cerrar</button></div></Modal>}
     {deleteRecord && <Modal className="admin-form-modal delete-confirm-modal" label="Eliminar registro" alert notice={toast} onDismiss={() => setDeleteRecord(null)}><div className="delete-confirm-icon"><Trash2 size={20} /></div><h2>¿Eliminar este registro?</h2><p><strong>{deleteRecord.name}</strong> se quitará de la tabla. Esta acción solo afecta los datos de demostración.</p><div className="admin-modal-actions"><button className="admin-secondary-button" onClick={() => setDeleteRecord(null)}>Cancelar</button><button className="admin-danger-button" onClick={confirmDeleteRecord}>Eliminar</button></div></Modal>}
@@ -509,7 +549,7 @@ function RankingManager({ ranking, academyStudents, onBack, onToast, onChange }:
   }
   function generateGroups() {
     const sorted = ranking.participants.filter((item) => item.paid).sort((a, b) => a.weight - b.weight || a.name.localeCompare(b.name, "es"));
-    if (!sorted.length) { onToast("Registra al menos un pago antes de generar grupos"); return; }
+    if (sorted.length<2) { onToast("Confirma el pago de al menos dos participantes para generar grupos"); return; }
     const next: RankingParticipant[] = ranking.participants.map((item) => ({ ...item, group: undefined }));
     const groupCount = Math.ceil(sorted.length / 5);
     sorted.forEach((participant, index) => {
@@ -519,7 +559,7 @@ function RankingManager({ ranking, academyStudents, onBack, onToast, onChange }:
       const entry = next.find((item) => item.id === participant.id);
       if (entry) entry.group = group;
     });
-    onChange({ ...ranking, participants: next });
+    onChange({ ...ranking, participants: [...sorted.map(p=>next.find(n=>n.id===p.id)!),...next.filter(p=>!p.paid)] });
     onToast(`${Math.ceil(sorted.length / 5)} grupo(s) generado(s), máximo 5 participantes por grupo`);
   }
   const groups = Array.from(new Set(ranking.participants.filter((item) => item.paid && item.group).map((item) => item.group as number))).sort((a, b) => a - b);
@@ -527,12 +567,14 @@ function RankingManager({ ranking, academyStudents, onBack, onToast, onChange }:
     <button className="back-link ranking-back" onClick={onBack}><ChevronRight className="back-chevron" size={16} /> Volver a rankings</button>
     <div className="admin-page-heading"><div><span className="admin-eyebrow">GESTIÓN DE COMPETENCIA</span><h1>{ranking.title}</h1><p>{formatLongDate(ranking.date)} · {ranking.time} · {ranking.venue}</p>{ranking.id === "ranking-14" && <span className="demo-rank-badge">DATOS DE PRUEBA · 20 PARTICIPANTES</span>}</div><button className="admin-secondary-button" onClick={copyLink}><Copy size={15} />{copyDone ? "Copiado" : "Copiar enlace"}</button></div>
     <div className="ranking-admin-stats"><div><span>Inscritos</span><strong>{ranking.participants.length} <small>/ {ranking.capacity}</small></strong></div><div><span>Pagos confirmados</span><strong>{paidCount}</strong></div><div><span>Tarifa alumno</span><strong>S/. {ranking.studentPrice.toFixed(2)}</strong></div><div><span>Tarifa externo</span><strong>S/. {ranking.publicPrice.toFixed(2)}</strong></div></div>
-    <section className="admin-panel-card ranking-share-card"><div className="ranking-share-icon"><Link2 size={18} /></div><div><strong>Enlace público de inscripción</strong><p>Alumnos y externos completan su inscripción desde esta página. El cupo se confirma después del pago.</p><code>{publicLink}</code></div><a href={publicLink} target="_blank" rel="noreferrer" className="row-action" aria-label="Abrir enlace"><ExternalLink size={16} /></a></section>
-    <div className="ranking-admin-layout"><section className="admin-panel-card ranking-participants-card"><div className="admin-card-heading"><div><h2>Participantes</h2><p>Separa alumnos y externos; asigna peso del 1 al 5 para sembrar grupos.</p></div><span className="course-selected-count">{ranking.participants.length} / {ranking.capacity}</span></div>
+    <details className="ranking-entries" open={groups.length===0}><summary>Inscripciones y participantes <span>{ranking.participants.length}</span></summary><section className="admin-panel-card ranking-share-card"><div className="ranking-share-icon"><Link2 size={18} /></div><div><strong>Enlace público de inscripción</strong><p>Alumnos y externos completan su inscripción desde esta página. El cupo se confirma después del pago.</p><code>{publicLink}</code></div><a href={publicLink} target="_blank" rel="noreferrer" className="row-action" aria-label="Abrir enlace"><ExternalLink size={16} /></a></section>
+    <div className="ranking-registration-layout"><section className="admin-panel-card ranking-participants-card"><div className="admin-card-heading"><div><h2>Participantes</h2><p>Separa alumnos y externos; asigna peso del 1 al 5 para sembrar grupos.</p></div><span className="course-selected-count">{ranking.participants.length} / {ranking.capacity}</span></div>
       <form className="ranking-add-participant" onSubmit={addParticipant}><label className="admin-form-label">DNI<input required inputMode="numeric" maxLength={8} pattern="[0-9]{8}" value={manualDni} onChange={(e) => { setManualDni(e.target.value.replace(/\D/g, "").slice(0, 8)); setManualName(""); }} placeholder="8 dígitos" /></label>{manualValidDni && (matchedStudent ? <div className="ranking-dni-match"><CheckCircle2 size={15} /><span><strong>{matchedStudent.name}</strong><small>Alumno de la academia</small></span></div> : <label className="admin-form-label">Nombre del externo<input required value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Nombre y apellido" /></label>)}<div className="ranking-price-preview"><span>{matchedStudent ? "Tarifa alumno" : manualValidDni ? "Tarifa externo" : "Tarifa"}</span><strong>S/. {(matchedStudent ? ranking.studentPrice : ranking.publicPrice).toFixed(2)}</strong></div><button className="admin-primary-button" type="submit" disabled={ranking.participants.length >= ranking.capacity || !manualValidDni || (!matchedStudent && !manualName.trim())}><CirclePlus size={16} />Generar pago</button></form>
-      <div className="ranking-participant-table"><div className="ranking-participant-head"><span>PARTICIPANTE</span><span>TIPO / TARIFA</span><span>PESO</span><span>PAGO</span><span>GRUPO</span><span /></div>{ranking.participants.map((person) => <div className="ranking-participant-row" key={person.id}><div><strong>{person.name}</strong><small>{person.dni ? `DNI ${person.dni}` : person.kind}</small></div><div><span>S/. {(person.kind === "Alumno" ? ranking.studentPrice : ranking.publicPrice).toFixed(2)}</span></div><label className="ranking-weight-field"><span className="sr-only">Peso de {person.name}</span><select value={person.weight} onChange={(e) => updateParticipant(person.id, { weight: Number(e.target.value), group: undefined })}>{[1, 2, 3, 4, 5].map((weight) => <option key={weight} value={weight}>{weight}{weight === 1 ? " · mejor" : ""}</option>)}</select></label><span className={`payment-state ${person.paid ? "paid" : "pending"}`}><i />{person.paid ? "Pagado" : "Pendiente"}</span><span className="ranking-group-cell">{person.group ? `Grupo ${person.group}` : "—"}</span>{!person.paid && person.dni && <a className="row-action manage" title="Abrir enlace de pago" href={`${publicLink}?pay=${person.id}`} target="_blank" rel="noreferrer"><Link2 size={14} /></a>}{!person.paid && !person.dni && <button type="button" className="row-action manage" title="Simular pago confirmado" onClick={() => updateParticipant(person.id, { paid: true })}><Check size={14} /></button>}</div>)}</div>
+      <div className="ranking-participant-table"><div className="ranking-participant-head"><span>PARTICIPANTE</span><span>TIPO / TARIFA</span><span>PESO</span><span>PAGO</span><span>GRUPO</span><span /></div>{ranking.participants.map((person) => <div className="ranking-participant-row" key={person.id}><div><strong>{person.name}</strong><small>{person.dni ? `DNI ${person.dni}` : person.kind}</small></div><div><span>S/. {(person.kind === "Alumno" ? ranking.studentPrice : ranking.publicPrice).toFixed(2)}</span></div><label className="ranking-weight-field"><span className="sr-only">Peso de {person.name}</span><select value={person.weight} onChange={(e) => updateParticipant(person.id, { weight: Number(e.target.value), group: undefined })}>{[1, 2, 3, 4, 5].map((weight) => <option key={weight} value={weight}>{weight}{weight === 1 ? " · mejor" : ""}</option>)}</select></label><span className={`payment-state ${person.paid ? "paid" : "pending"}`}><i />{person.paid ? "Pagado" : "Pendiente"}</span><span className="ranking-group-cell">{person.group ? `Grupo ${groupLabel(person.group)}` : "—"}</span>{!person.paid && person.dni && <a className="row-action manage" title="Abrir enlace de pago" href={`${publicLink}?pay=${person.id}`} target="_blank" rel="noreferrer"><Link2 size={14} /></a>}{!person.paid && !person.dni && <button type="button" className="row-action manage" title="Simular pago confirmado" onClick={() => updateParticipant(person.id, { paid: true })}><Check size={14} /></button>}</div>)}</div>
       <p className="ranking-seed-note"><Trophy size={15} /> Peso 1 es el mejor sembrado; peso 5 es el último. Solo participantes con pago confirmado entran en los grupos.</p>
-    </section><section className="admin-panel-card ranking-groups-card"><div className="admin-card-heading"><div><h2>Grupos del torneo</h2><p>Máximo 5 jugadores por grupo</p></div><button className="admin-primary-button" onClick={generateGroups}><Users size={15} />Generar grupos</button></div>{groups.length ? <div className="ranking-groups-list">{groups.map((group) => <article className="ranking-group-card" key={group}><div className="ranking-group-title"><strong>Grupo {String.fromCharCode(64 + group)}</strong><span>{ranking.participants.filter((person) => person.group === group).length} / 5 jugadores</span></div>{ranking.participants.filter((person) => person.group === group).sort((a, b) => a.weight - b.weight).map((person, index) => <div className="ranking-group-player" key={person.id}><span>{index + 1}</span><strong>{person.name}</strong><small>{person.kind} · Peso {person.weight}</small></div>)}</article>)}</div> : <div className="ranking-groups-empty"><span><Users size={22} /></span><strong>Aún no hay grupos</strong><p>Registra los pagos, ajusta el peso de cada participante y genera grupos de hasta cinco personas.</p></div>}</section></div>
+    </section></div></details>
+    <section className="ops-card group-editor"><header className="sheet-heading"><div><h2>Distribución de jugadores</h2><p>{groups.length?"Grupos en edición":"Genera una distribución inicial a partir de la siembra."}</p></div><button className="admin-secondary-button" disabled={paidCount<2} onClick={generateGroups}>{groups.length?"Volver a distribuir":"Generar grupos"}</button></header>
+    {!!groups.length && <GroupBoard players={ranking.participants} onChange={participants=>onChange({...ranking,participants})}/>}</section>
   </div>;
 }
 

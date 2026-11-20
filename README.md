@@ -2,6 +2,18 @@
 
 Aplicación responsive en Next.js 16 / React 19 / TypeScript, preparada para academias aisladas por subdominio. Las vistas incluyen portal de estudiante y panel de academia; autenticación inicial y recuperación de contraseña ya usan API y MySQL. **Aún no está lista para producción:** las pantallas de administración de cursos/alumnos/rankings y el portal de estudiante conservan datos de demostración. Los pagos y las integraciones correo/Google quedan expresamente para una etapa posterior.
 
+## Pruebas en Hostinger
+
+Esta rama usa el tipo de sitio **Web App**, disponible en los planes con Node.js. Para una sola academia puedes usar la dirección temporal que asigna hPanel.
+
+1. En **Websites → Create site → Web App**, elige una dirección temporal, conecta GitHub y selecciona `mednologyapps-debug/ttacademias`, rama `hostinger-staging`. Usa la raíz del repositorio, el preset Next.js, Node 22.x y npm.
+2. Crea una base MySQL de pruebas. Para una base vacía, importa `database/schema.sql` en phpMyAdmin. Para actualizar una instalación anterior, aplica únicamente las migraciones pendientes de `database/migrations` en orden.
+3. En las variables de la Web App, configura `DATABASE_URL` con los datos exactos de hPanel (codifica los caracteres especiales del usuario y contraseña para una URL). Configura `APP_URL` con la URL HTTPS de la academia, `SINGLE_ACADEMY_HOST` con el mismo nombre de host sin protocolo ni ruta y `DEFAULT_ACADEMY_SLUG` con el identificador de la academia, por ejemplo `demo`. El dominio temporal solo identifica esa academia cuando coincide exactamente. Conserva `BASE_DOMAIN` para la configuración multiacademia con dominio propio.
+4. Si ya existe el administrador, usa **npm run build**. Para una base recién importada, configura las variables `BOOTSTRAP_*` que aparecen abajo, con `BOOTSTRAP_ACADEMY_SLUG` igual a `DEFAULT_ACADEMY_SLUG` y claves privadas de al menos 12 caracteres. Elige **npm run build:hostinger:setup** para el primer despliegue. Una vez creado el administrador, vuelve a **npm run build**, elimina las variables `BOOTSTRAP_*` de hPanel y vuelve a desplegar.
+5. Abre `/api/health` y comprueba que la base indique `connected`. En la URL de prueba entra con el administrador de **academia**. Desde un segundo navegador abre `/registro` y envía una solicitud para un horario publicado. Confirma su recepción en **Alumnos → Solicitudes de matrícula**.
+
+Las credenciales de demostración local solo funcionan durante el desarrollo. El informe de salud comprueba la conexión MySQL. Las pruebas de matrícula, agenda, pago y ranking requieren comprobar sus resultados entre sesiones distintas.
+
 ## Desarrollo local
 
 Requiere Node.js 20.9+ y npm.

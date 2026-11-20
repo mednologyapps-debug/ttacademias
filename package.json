@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:hostinger:setup": "node scripts/bootstrap.mjs && next build",
     "start": "next start",
     "bootstrap:admin": "node --env-file=.env.local scripts/bootstrap.mjs"
   },

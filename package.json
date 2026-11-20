@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "build:hostinger:setup": "node scripts/bootstrap.mjs && next build",
+    "build": "next build --webpack",
+    "build:hostinger:setup": "node scripts/bootstrap.mjs && npm run build",
     "start": "next start",
     "bootstrap:admin": "node --env-file=.env.local scripts/bootstrap.mjs"
   },

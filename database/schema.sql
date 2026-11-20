@@ -48,15 +48,15 @@ CREATE TABLE courses (
   KEY idx_course_tenant (academy_id,status),
   CONSTRAINT fk_course_academy FOREIGN KEY (academy_id) REFERENCES academies(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE TABLE course_teachers (course_id CHAR(36) NOT NULL, teacher_id CHAR(36) NOT NULL, PRIMARY KEY(course_id,teacher_id), FOREIGN KEY(course_id) REFERENCES courses(id) ON DELETE CASCADE, FOREIGN KEY(teacher_id) REFERENCES users(id) ON DELETE CASCADE) ENGINE=InnoDB;
-CREATE TABLE course_students (course_id CHAR(36) NOT NULL, student_id CHAR(36) NOT NULL, PRIMARY KEY(course_id,student_id), FOREIGN KEY(course_id) REFERENCES courses(id) ON DELETE CASCADE, FOREIGN KEY(student_id) REFERENCES users(id) ON DELETE CASCADE) ENGINE=InnoDB;
+CREATE TABLE course_teachers (course_id CHAR(36) NOT NULL, teacher_id CHAR(36) NOT NULL, PRIMARY KEY(course_id,teacher_id), FOREIGN KEY(course_id) REFERENCES courses(id) ON DELETE CASCADE, FOREIGN KEY(teacher_id) REFERENCES users(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE course_students (course_id CHAR(36) NOT NULL, student_id CHAR(36) NOT NULL, PRIMARY KEY(course_id,student_id), FOREIGN KEY(course_id) REFERENCES courses(id) ON DELETE CASCADE, FOREIGN KEY(student_id) REFERENCES users(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE course_slots (
   id CHAR(36) PRIMARY KEY, course_id CHAR(36) NOT NULL,
   weekday TINYINT UNSIGNED NOT NULL, starts_at TIME NOT NULL, duration_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 120,
   teacher_id CHAR(36) NULL, KEY idx_slot_course (course_id,weekday),
   FOREIGN KEY(course_id) REFERENCES courses(id) ON DELETE CASCADE,
   FOREIGN KEY(teacher_id) REFERENCES users(id) ON DELETE SET NULL
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE classes (
   id CHAR(36) PRIMARY KEY, academy_id CHAR(36) NOT NULL, course_id CHAR(36) NOT NULL,
   teacher_id CHAR(36) NOT NULL, title VARCHAR(160) NOT NULL, starts_at DATETIME NOT NULL,
@@ -66,13 +66,13 @@ CREATE TABLE classes (
   FOREIGN KEY(academy_id) REFERENCES academies(id) ON DELETE CASCADE,
   FOREIGN KEY(course_id) REFERENCES courses(id) ON DELETE CASCADE,
   FOREIGN KEY(teacher_id) REFERENCES users(id) ON DELETE RESTRICT
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE attendance (
   class_id CHAR(36) NOT NULL, student_id CHAR(36) NOT NULL,
   response ENUM('yes','no','present','absent') NOT NULL, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY(class_id,student_id), FOREIGN KEY(class_id) REFERENCES classes(id) ON DELETE CASCADE,
   FOREIGN KEY(student_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE announcements (
   id CHAR(36) PRIMARY KEY, academy_id CHAR(36) NOT NULL, author_id CHAR(36) NOT NULL,
   title VARCHAR(180) NOT NULL, body TEXT NOT NULL, published_at DATETIME NULL,
@@ -80,13 +80,13 @@ CREATE TABLE announcements (
   KEY idx_announcement_tenant (academy_id,published_at),
   FOREIGN KEY(academy_id) REFERENCES academies(id) ON DELETE CASCADE,
   FOREIGN KEY(author_id) REFERENCES users(id) ON DELETE RESTRICT
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE plans (
   id CHAR(36) PRIMARY KEY, academy_id CHAR(36) NOT NULL, name VARCHAR(120) NOT NULL,
   price DECIMAL(10,2) NOT NULL, duration_days SMALLINT UNSIGNED NOT NULL,
   status ENUM('active','inactive') NOT NULL DEFAULT 'active',
   FOREIGN KEY(academy_id) REFERENCES academies(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE memberships (
   id CHAR(36) PRIMARY KEY, academy_id CHAR(36) NOT NULL, student_id CHAR(36) NOT NULL, plan_id CHAR(36) NOT NULL,
   starts_on DATE NOT NULL, ends_on DATE NOT NULL, status ENUM('active','expired','cancelled') NOT NULL,
@@ -94,7 +94,7 @@ CREATE TABLE memberships (
   FOREIGN KEY(academy_id) REFERENCES academies(id) ON DELETE CASCADE,
   FOREIGN KEY(student_id) REFERENCES users(id) ON DELETE RESTRICT,
   FOREIGN KEY(plan_id) REFERENCES plans(id) ON DELETE RESTRICT
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE payments (
   id CHAR(36) PRIMARY KEY, academy_id CHAR(36) NOT NULL, student_id CHAR(36) NOT NULL,
   purpose ENUM('membership','ranking','enrollment') NOT NULL, reference_id CHAR(36) NOT NULL,
@@ -105,7 +105,7 @@ CREATE TABLE payments (
   KEY idx_payment_tenant_student (academy_id,student_id,created_at),
   FOREIGN KEY(academy_id) REFERENCES academies(id) ON DELETE CASCADE,
   FOREIGN KEY(student_id) REFERENCES users(id) ON DELETE RESTRICT
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE rankings (
   id CHAR(36) PRIMARY KEY, academy_id CHAR(36) NOT NULL, title VARCHAR(180) NOT NULL,
   starts_at DATETIME NOT NULL, venue VARCHAR(200) NOT NULL,
@@ -114,7 +114,7 @@ CREATE TABLE rankings (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_ranking_tenant_time (academy_id,status,starts_at),
   FOREIGN KEY(academy_id) REFERENCES academies(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE ranking_entries (
   id CHAR(36) PRIMARY KEY, ranking_id CHAR(36) NOT NULL, academy_id CHAR(36) NOT NULL,
   student_id CHAR(36) NULL, participant_name VARCHAR(160) NOT NULL, dni CHAR(8) NOT NULL,
@@ -126,11 +126,11 @@ CREATE TABLE ranking_entries (
   FOREIGN KEY(academy_id) REFERENCES academies(id) ON DELETE CASCADE,
   FOREIGN KEY(student_id) REFERENCES users(id) ON DELETE SET NULL,
   FOREIGN KEY(payment_id) REFERENCES payments(id) ON DELETE SET NULL
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE password_reset_tokens (
   token_hash CHAR(64) PRIMARY KEY, user_id CHAR(36) NOT NULL, expires_at DATETIME NOT NULL,
   used_at DATETIME NULL, FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS enrollment_offers (
   id CHAR(36) PRIMARY KEY, academy_id CHAR(36) NOT NULL, venue VARCHAR(120) NOT NULL,
   level VARCHAR(24) NOT NULL, schedule VARCHAR(120) NOT NULL,
@@ -155,4 +155,4 @@ CREATE TABLE IF NOT EXISTS academy_operations (
   payload JSON NOT NULL,
   PRIMARY KEY (academy_id, record_key),
   FOREIGN KEY (academy_id) REFERENCES academies(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

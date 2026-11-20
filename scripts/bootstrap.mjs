@@ -4,7 +4,9 @@ import { randomUUID } from "node:crypto";
 
 const required = ["DATABASE_URL", "BOOTSTRAP_ACADEMY_NAME", "BOOTSTRAP_ACADEMY_SLUG", "BOOTSTRAP_ADMIN_NAME", "BOOTSTRAP_ADMIN_EMAIL", "BOOTSTRAP_ADMIN_PASSWORD", "BOOTSTRAP_ACADEMY_ADMIN_NAME", "BOOTSTRAP_ACADEMY_ADMIN_EMAIL", "BOOTSTRAP_ACADEMY_ADMIN_PASSWORD"];
 for (const key of required) if (!process.env[key]) { console.error(`Falta configurar ${key}`); process.exit(1); }
-if (process.env.BOOTSTRAP_ADMIN_PASSWORD.length < 12) { console.error("BOOTSTRAP_ADMIN_PASSWORD debe tener al menos 12 caracteres."); process.exit(1); }
+for (const key of ["BOOTSTRAP_ADMIN_PASSWORD", "BOOTSTRAP_ACADEMY_ADMIN_PASSWORD"]) {
+  if (process.env[key].length < 12) { console.error(`${key} debe tener al menos 12 caracteres.`); process.exit(1); }
+}
 const db = await mysql.createConnection(process.env.DATABASE_URL);
 try {
   const [existing] = await db.execute("SELECT id FROM academies WHERE slug=? LIMIT 1", [process.env.BOOTSTRAP_ACADEMY_SLUG]);

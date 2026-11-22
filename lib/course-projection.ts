@@ -7,10 +7,19 @@ import {slotTime} from "./teaching-ledger";
 
 export async function projectCourses(db:PoolConnection, academy:string, data:Finance, old:Finance|undefined, password?:string) {
   const [users]=await db.execute<RowDataPacket[]>("SELECT id,full_name,email,role,status FROM users WHERE academy_id=?",[academy]);
-  for(const [name,birth,,email,phone] of data.teachers){
+  const emails = data.teachers.map(t => t[3].trim().toLowerCase());
+  if (new Set(emails).size !== emails.length) throw new EnrollmentError("Ese correo ya está asignado a otro profesor.",409);
+  for(const [name,birth,,rawEmail,phone] of data.teachers){
+    const email = rawEmail.trim().toLowerCase();
     const existing=users.find(u=>u.email.toLowerCase()===email.toLowerCase());
     if(existing && existing.role!=="teacher")throw new EnrollmentError("Ese correo pertenece a otra cuenta.",409);
     if(existing){
+      if (existing.status !== "active") {
+        if (existing.status !== "suspended" || !password || password.length < 10) throw new EnrollmentError("Define una contraseña inicial para reactivar al profesor.",400);
+        await db.execute("DELETE FROM sessions WHERE user_id=?", [existing.id]);
+        await db.execute("UPDATE users SET status='active', password_hash=? WHERE id=? AND academy_id=?", [await bcrypt.hash(password,12),existing.id,academy]);
+        existing.status="active";
+      }
       await db.execute("UPDATE users SET full_name=?,birth_date=?,phone=? WHERE id=? AND academy_id=?",[name,birth||null,phone||null,existing.id,academy]);
       existing.full_name=name;
     }else{
@@ -55,7 +64,7 @@ export async function projectCourses(db:PoolConnection, academy:string, data:Fin
     }
   }
   for(const c of old?.courses||[])if(!data.courses.some(v=>v.id===c.id))await db.execute("UPDATE courses SET status='closed' WHERE id=? AND academy_id=?",[c.id,academy]);
-  for(const t of old?.teachers||[])if(!data.teachers.some(v=>v[3]===t[3]))await db.execute("UPDATE users SET status='suspended' WHERE academy_id=? AND role='teacher' AND email=?",[academy,t[3]]);
+  for(const t of old?.teachers||[])if(!emails.includes(t[3].trim().toLowerCase()))await db.execute("UPDATE users SET status='suspended' WHERE academy_id=? AND role='teacher' AND email=?",[academy,t[3]]);
   for(const lesson of data.lessons||[]){
     const id=createHash("sha256").update([academy,lesson.courseId,lesson.id].join("|")).digest("hex").slice(0,36);
     lesson.projectedId=id;

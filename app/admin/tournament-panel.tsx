@@ -60,5 +60,5 @@ function ScoreForm({game,a,b,bestOf,busy,close,save}:{game:Game;a:string;b:strin
     if(!await save(sets))setError("No se guardó el resultado. Revisa el estado del partido y vuelve a intentarlo.");}
   return <Modal className="admin-form-modal" labelledBy="score-title" onDismiss={close}><h2 id="score-title">Resultado del partido</h2>
     <form onSubmit={submit}><div className="ops-scroll"><table><thead><tr><th>Set</th><th>{a}</th><th>{b}</th></tr></thead><tbody>{draft.map((set,i)=><tr key={i}><td>{i+1}</td>{set.map((v,k)=><td key={k}><input aria-label={`Set ${i+1}, ${k===0?a:b}`} type="number" min="0" max="999" step="1" value={v} onChange={e=>setDraft(draft.map((s,n)=>n===i?s.map((old,j)=>j===k?e.target.value:old):s))}/></td>)}</tr>)}</tbody></table></div><p>Deja vacíos los sets que no se jugaron.</p>{error&&<p role="alert">{error}</p>}
-    <div className="ops-controls"><button type="button" onClick={close}>Volver</button><button disabled={busy} className="admin-primary-button">Guardar resultado</button></div></form></Modal>;
+    <div className="ops-controls"><button className="admin-secondary-button" type="button" onClick={close}>Volver</button><button disabled={busy} className="admin-primary-button">Guardar resultado</button></div></form></Modal>;
 }

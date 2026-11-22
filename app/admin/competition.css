@@ -97,3 +97,30 @@
 .stage-note {font-size:.85rem;line-height:1.5}
 @media(max-width:950px){.stage-columns {grid-template-columns:1fr}}
 @media(max-width:650px){.sheet-heading,.ledger-toolbar {align-items:stretch;flex-direction:column}.ledger-tabs button{flex:1;white-space:normal;padding:10px 6px;font-size:.9rem}.attendance-line{grid-template-columns:1fr auto}.attendance-line select{grid-column:1/-1}.phase-actions{justify-content:flex-start}.teacher-pay-grid{grid-template-columns:1fr}.group-board{grid-template-columns:1fr}.ledger-search{max-width:none}}
+
+.dashboard-ranking {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;
+  width:100%;
+  align-items:center;
+  gap:12px;
+  padding:14px 12px;
+  text-align:left;
+  color:#172d47;
+  background:white;
+  border:0;
+  border-top:1px solid #e2e9f1;
+  font:inherit;
+  cursor:pointer;
+}
+.dashboard-ranking strong {overflow-wrap:anywhere}
+.dashboard-ranking:hover {background:var(--brand-soft,#f1f5ff)}
+.dashboard-ranking:focus-visible {outline:2px solid var(--admin-brand);outline-offset:-2px}
+.dashboard-ranking svg {color:var(--admin-brand)}
+.competition-back {align-self:flex-start;justify-self:start;width:fit-content}
+.ops-controls.phase-actions {align-items:flex-end;border-top:1px solid #e2e9f1;padding-top:16px;margin-bottom:0}
+.ops-controls.phase-actions :is(button,select) {min-height:42px;box-sizing:border-box}
+.teacher-assignments {border:0;padding:0;margin:0;min-width:0}
+.teacher-assignments legend {padding:0;margin-bottom:8px;font-weight:700;color:#283d59}
+.teacher-assignments p {margin:0;padding:12px;border-radius:8px;background:#f4f7fb;color:#425671}
+.teacher-assignments .ops-contract {align-items:end}

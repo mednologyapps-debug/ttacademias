@@ -8,7 +8,7 @@ import "./competition.css";
 const currency=(c:number)=>new Intl.NumberFormat("es-PE",{style:"currency",currency:"PEN"}).format(c/100);
 export type DraftFee={courseId:string;role:Contract["role"];amount:string};
 export function AssignmentFields({courses,fees,change}:{courses:Course[];fees:DraftFee[];change:(f:DraftFee[])=>void}) {
-  return <fieldset><legend>Cursos y honorarios</legend>{courses.map(course=>{
+  return <fieldset className="teacher-assignments"><legend>Cursos y honorarios</legend>{!courses.length && <p>Primero crea un curso en Cursos. Aquí podrás asignarlo y definir cuánto pagarás al profesor.</p>}{courses.map(course=>{
     const fee=fees.find(f=>f.courseId===course.id);
     const update=(patch:Partial<DraftFee>)=>change(fees.map(f=>f.courseId===course.id?{...f,...patch}:f));
     return <div key={course.id} className="ops-contract"><label><span><input type="checkbox" checked={!!fee} onChange={()=>change(fee?fees.filter(f=>f!==fee):[...fees,{courseId:course.id,role:"Principal",amount:""}])}/> {course.name}</span></label>

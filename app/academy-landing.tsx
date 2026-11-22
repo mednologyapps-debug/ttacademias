@@ -9,7 +9,7 @@ import RankingRegistration from "./ranking/[id]/ranking-registration";
 import "./landing-editorial.css";
 import { Activity, ArrowLeft, ArrowRight, CalendarDays, Menu, Trophy, X } from "lucide-react";
 
-type Props = { academyName: string; logoUrl: string | null; primaryColor: string; teachers: string[] };
+type Props = { academyName: string; logoUrl: string | null; primaryColor: string; teachers: string[]; canEnroll:boolean };
 const slides = [
   { image: "https://images.unsplash.com/photo-1774755458463-224dc3ca8331?auto=format&fit=crop&w=2400&q=85", eyebrow: "TENIS DE MESA · MIRAFLORES", title: <>Cada punto<br/>te acerca a <em>más.</em></>, text: "Entrenamiento con propósito, buenos profesores y una comunidad que te impulsa a mejorar.", cta: "Conoce la academia" },
   { image: "https://images.unsplash.com/photo-1786025106050-1aa8eaa5ad3e?auto=format&fit=crop&w=2400&q=85", eyebrow: "TU JUEGO, A TU RITMO", title: <>Aprende. Entrena.<br/><em>Vuelve mejor.</em></>, text: "Encuentra tu nivel, construye técnica y disfruta cada sesión dentro y fuera de la mesa.", cta: "Quiero entrenar" },
@@ -26,7 +26,7 @@ const demoCoaches: Record<string, { portrait: string; specialty: string }> = {
   "Lucía Salazar": { portrait: "/images/team/lucia.webp", specialty: "Desarrollo deportivo" },
 };
 
-export default function AcademyLanding({ academyName, logoUrl, primaryColor, teachers }: Props) {
+export default function AcademyLanding({ academyName, logoUrl, primaryColor, teachers, canEnroll }: Props) {
   const {result: standings}=useStandings();
   const ranking=standings?.open?.[0];
   const [slide, setSlide] = useState(0); const [menuOpen, setMenuOpen] = useState(false); const [modal, setModal] = useState<"registration" | "ranking" | null>(null);
@@ -62,7 +62,7 @@ export default function AcademyLanding({ academyName, logoUrl, primaryColor, tea
           <a href="#equipo">Equipo técnico</a>
           <a href="#ranking">Rankings</a>
           <Link href="/login" className="club-login">Ingresar</Link>
-          <button type="button" className="club-action" onClick={() => setModal("registration")}>Matricularme</button>
+          <button type="button" className="club-action" onClick={() => setModal("registration")}>{canEnroll ? "Matricularme" : "Solicitar información"}</button>
         </nav>
         <button type="button" id="club-menu-toggle" className="club-nav-toggle" aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
           aria-expanded={menuOpen} aria-controls="club-navigation" onClick={() => setMenuOpen(!menuOpen)}>
@@ -75,7 +75,7 @@ export default function AcademyLanding({ academyName, logoUrl, primaryColor, tea
         <h1>{current.title}</h1><p>{current.text}</p>
         <div className="hero-v2-actions">
           {slide === 1
-            ? <button type="button" className="club-action" onClick={() => setModal("registration")}>{current.cta}</button>
+            ? <button type="button" className="club-action" onClick={() => setModal("registration")}>{canEnroll ? current.cta : "Solicitar información"}</button>
             : <a className="club-action" href={slide === 2 ? "#ranking" : "#academia"}>{current.cta}</a>}
         </div>
       </div>
@@ -89,7 +89,7 @@ export default function AcademyLanding({ academyName, logoUrl, primaryColor, tea
       <div className="club-intro-copy">
         <h2>Entrena a tu nivel.</h2>
         <p>Desde tus primeros saques hasta los partidos de competencia, en {academyName} encontrarás un grupo para practicar a tu ritmo.</p>
-        <button type="button" className="club-action" onClick={() => setModal("registration")}>Matricúlate en la academia</button>
+        <button type="button" className="club-action" onClick={() => setModal("registration")}>{canEnroll ? "Matricúlate en la academia" : "Solicitar información"}</button>
       </div>
       <div className="club-training-preview">
         <img src={slides[2].image} alt="Mesa de tenis preparada para la práctica" loading="lazy" />
@@ -128,10 +128,10 @@ export default function AcademyLanding({ academyName, logoUrl, primaryColor, tea
       </div>
     </section>
     <section id="ranking" className="landing-ranking-v2"><div className="ranking-v2-orb"/><div className="ranking-v2-copy"><h2>{ranking?<>Próximo ranking<br/><em>de la academia</em></>:<>Consulta el ranking<br/><em>de la academia</em></>}</h2><p>{ranking?"Revisa los detalles y asegura tu lugar en el próximo encuentro.":"Revisa la tabla de posiciones y descubre cómo avanza la comunidad de la academia."}</p><a href="/rankings" className="ranking-v2-link">Ver tabla de posiciones</a></div>{ranking?<article className="ranking-v2-card"><div className="ranking-status-v2">Inscripción abierta</div><h3>{ranking.title}</h3><div className="ranking-facts-v2"><p><CalendarDays size={17}/><span><small>Fecha y hora</small><strong>{new Date(ranking.date+"T12:00:00").toLocaleDateString("es-PE",{dateStyle:"medium"})+" · "+ranking.time}</strong></span></p><p><Activity size={17}/><span><small>Sede</small><strong>{ranking.venue}</strong></span></p></div><div className="ranking-prices-v2"><div><small>Tarifa estudiante</small><strong>S/ {Number(ranking.studentPrice).toFixed(2)}</strong></div><div><small>Tarifa externa</small><strong>S/ {Number(ranking.publicPrice).toFixed(2)}</strong></div></div><div className="ranking-card-footer-v2"><span>Aforo máximo: {ranking.capacity} jugadores</span><button type="button" onClick={()=>setModal("ranking")} className="ranking-v2-primary">Inscribirme</button></div></article>:<div className="ranking-v2-empty"><Trophy size={26}/><strong>Pronto habrá un nuevo ranking</strong><span>La tabla de posiciones de la academia está disponible para consulta.</span></div>}</section>
-    <footer className="landing-footer-v2"><Link href="#inicio" className="landing-brand-v2"><span><Activity size={18}/></span>{academyName}</Link><span>Tenis de mesa, comunidad y progreso.</span><Link href="/login">Acceso para alumnos y profesores</Link></footer>
+    <footer className="landing-footer-v2"><Link href="#inicio" className="landing-brand-v2"><span>{logoUrl ? <img src={logoUrl} alt="" width={24} height={24} style={{objectFit:"contain"}}/> : <Activity size={18}/>}</span>{academyName}</Link><span>Tenis de mesa, comunidad y progreso.</span><Link href="/login">Acceso para alumnos y profesores</Link></footer>
     {modal && (
       <Modal className={`public-form-dialog ${modal === "registration" ? "enroll" : "ranking"}`}
-        label={modal === "registration" ? "Matricularme" : "Inscripción al ranking"}
+        label={modal === "registration" ? (canEnroll ? "Matricularme" : "Solicitar información") : "Inscripción al ranking"}
         onDismiss={() => setModal(null)}>
         <button type="button" className="dialog-exit" onClick={() => setModal(null)} aria-label="Cerrar">
           <X size={18}/>

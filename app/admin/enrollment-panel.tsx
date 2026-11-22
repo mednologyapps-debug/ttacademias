@@ -9,6 +9,7 @@ export default function EnrollmentPanel({ courses,onRegister }: { courses?:Cours
   const managing = courses !== undefined;
   const [offers,setOffers] = useState<Offer[]>([]);
   const [requests,setRequests] = useState<Enrollment[]>([]);
+  const [inquiries,setInquiries]=useState<{id:string;message:string;createdAt:string;attemptedAt?:string;status:string}[]>([]);
   const [ready,setReady] = useState(false);
   const [error,setError] = useState("");
   const [busy,setBusy] = useState(false);
@@ -21,7 +22,7 @@ export default function EnrollmentPanel({ courses,onRegister }: { courses?:Cours
       const response = await fetch("/api/academy/enrollment"+(managing?"?view=offers":""),{cache:"no-store",signal});
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      if (managing) setOffers(data.offers); else setRequests(data.requests);
+      if (managing) setOffers(data.offers); else {setRequests(data.requests);setInquiries(data.inquiries || []);}
       setError("");
     } catch(e) { if (!signal?.aborted) setError(e instanceof Error ? e.message : "No se pudieron cargar los datos."); }
     finally { if(!signal?.aborted) setReady(true); }
@@ -41,6 +42,15 @@ export default function EnrollmentPanel({ courses,onRegister }: { courses?:Cours
       if (!response.ok) throw new Error((await response.json()).error);
       await refresh();
     } catch(e) {setError(e instanceof Error ? e.message : "No se pudo guardar.");}
+    finally {setBusy(false);}
+  }
+  async function resend(id:string) {
+    setBusy(true);setError("");
+    try {
+      const res=await fetch("/api/academy/inquiries",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
+      if (!res.ok) throw new Error((await res.json()).error);
+      await refresh();
+    } catch(e){setError(e instanceof Error?e.message:"No se pudo enviar.");}
     finally {setBusy(false);}
   }
   function publish(e:FormEvent) {e.preventDefault();if(selected?.slots.includes(schedule)) void change();}
@@ -66,6 +76,7 @@ export default function EnrollmentPanel({ courses,onRegister }: { courses?:Cours
         <tr><th>Solicitante</th><th>Nacimiento</th><th>Contacto</th><th>Sede</th><th>Nivel y horario</th>{onRegister&&<th>Alumno</th>}</tr></thead>
         <tbody>{requests.map(r=><tr key={r.id}><td><strong>{r.firstName} {r.lastName}</strong><small>DNI {r.dni}</small></td><td>{r.birthDate.split("-").reverse().join("/")}</td>
           <td>{r.email}<small>{r.phone}</small></td><td>{r.venue}</td><td>{r.level}<small>{r.schedule}</small></td>{onRegister&&<td><button type="button" className="admin-plain-link" onClick={()=>onRegister(r)}>Revisar ficha</button></td>}</tr>)}</tbody></table></div>}
+      {!!inquiries.length && <div className="enquiry-inbox"><h3>Consultas de información</h3>{inquiries.map(q=><article key={q.id}><p>{q.message}</p><small>{new Date(q.createdAt).toLocaleString("es-PE",{timeZone:"America/Lima"})} · {q.status==="sent"?"Correo enviado":q.status==="sending"?"Enviando correo":"Correo pendiente"}</small>{(q.status==="pending" || (q.status==="sending" && Date.now()-Date.parse(q.attemptedAt || q.createdAt)>300000)) && <button disabled={busy} className="admin-secondary-button" onClick={()=>resend(q.id)}>Reintentar correo</button>}</article>)}</div>}
     </>}
   </details></section>;
 }

@@ -61,9 +61,16 @@ function demoStore<T>(run: (data: DemoData) => T, save = false): Promise<T> {
   demoState.enrollmentWriteQueue = next.then(() => {}, () => {});
   return next;
 }
-export async function offers(academy: string): Promise<Offer[]> {
+// Older offers identify courses by their published level and weekly slot.
+const availableCourse = `EXISTS (
+  SELECT 1 FROM courses c JOIN course_slots s ON s.course_id=c.id
+  WHERE c.academy_id=o.academy_id AND c.status='active' AND c.ends_on>=DATE(UTC_TIMESTAMP()-INTERVAL 5 HOUR)
+  AND o.level=CASE c.level WHEN 'basic' THEN 'Básico' WHEN 'intermediate' THEN 'Intermedio' WHEN 'advanced' THEN 'Avanzado' END
+  AND o.schedule=CONCAT(ELT(s.weekday+1,'Dom','Lun','Mar','Mié','Jue','Vie','Sáb'),' · ',TIME_FORMAT(s.starts_at,'%l:%i %p'))
+)`;
+export async function offers(academy: string, publicOnly=false): Promise<Offer[]> {
   if (academy === demo) return demoStore(data => data.offers);
-  const [rows] = await getDb().execute<(Offer & RowDataPacket)[]>("SELECT id,venue,level,schedule FROM enrollment_offers WHERE academy_id=? ORDER BY venue,level,schedule", [academy]);
+  const [rows] = await getDb().execute<(Offer & RowDataPacket)[]>("SELECT o.id,o.venue,o.level,o.schedule FROM enrollment_offers o WHERE o.academy_id=?"+(publicOnly?" AND "+availableCourse:"")+" ORDER BY venue,level,schedule", [academy]);
   return rows;
 }
 export async function addOffer(academy: string, offer: Offer) {
@@ -97,7 +104,7 @@ export async function apply(academy: string, person: Applicant, offerId: string)
   try {
     const [result] = await getDb().execute<ResultSetHeader>(
       `INSERT INTO enrollment_requests (id,first_name,last_name,dni,email,phone,birth_date,academy_id,offer_id,venue,level,schedule)
-       SELECT ?,?,?,?,?,?,?,academy_id,id,venue,level,schedule FROM enrollment_offers WHERE id=? AND academy_id=?`,
+       SELECT ?,?,?,?,?,?,?,academy_id,id,venue,level,schedule FROM enrollment_offers o WHERE o.id=? AND o.academy_id=? AND ${availableCourse}`,
       [id,person.firstName,person.lastName,person.dni,person.email,person.phone,person.birthDate,offerId,academy]);
     if (!result.affectedRows) throw unavailable();
   } catch (e) { if ((e as {code?:string}).code !== "ER_DUP_ENTRY") throw e; }

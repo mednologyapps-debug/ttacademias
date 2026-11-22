@@ -11,6 +11,7 @@ import type { Tournament, Move } from "@/lib/tournament";
 import EnrollmentPanel from "./enrollment-panel";
 import Modal from "@/components/modal";
 
+import {prepareLogo} from "./prepare-logo";
 import "./workspace.css";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -127,6 +128,22 @@ export default function AdminPanel({adminName="Administrador"}:{adminName?:strin
   const [academyName, setAcademyName] = useState("TT Academias");
   const [brandColor, setBrandColor] = useState("#0b50c8");
   const [logoUrl, setLogoUrl] = useState("");
+  const [logoFile,setLogoFile] = useState<Blob|null>(null);
+  const [logoPreview,setLogoPreview] = useState("");
+  const [brandBusy,setBrandBusy] = useState(false);
+  useEffect(()=>{
+    if (!logoFile) { setLogoPreview(""); return; }
+    const url=URL.createObjectURL(logoFile);
+    setLogoPreview(url);
+    return ()=>URL.revokeObjectURL(url);
+  },[logoFile]);
+  async function chooseLogo(file?:File) {
+    if (!file) return;
+    setBrandBusy(true);
+    try { setLogoFile(await prepareLogo(file)); }
+    catch(e) { notify(e instanceof Error?e.message:"No se pudo leer la imagen."); }
+    finally { setBrandBusy(false); }
+  }
   const [formTitle, setFormTitle] = useState("");
   const [formDetail, setFormDetail] = useState("");
   const [memberBirth, setMemberBirth] = useState("");
@@ -169,9 +186,18 @@ export default function AdminPanel({adminName="Administrador"}:{adminName?:strin
     window.setTimeout(() => setToast(""), 2600);
   }
   async function saveAcademySettings() {
-    const response = await fetch("/api/academy/settings", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: academyName, primaryColor: brandColor, logoUrl }) });
-    const result = await response.json();
-    if (!response.ok) { notify(result.error || "No se pudo guardar la identidad de academia"); return; }
+    if (brandBusy) return;
+    setBrandBusy(true);
+    try {
+      const body=new FormData();
+      body.set("name",academyName);body.set("primaryColor",brandColor);body.set("logoUrl",logoUrl);
+      if (logoFile) body.set("logo",logoFile,"logo.png");
+      const response=await fetch("/api/academy/settings",{method:"PATCH",body});
+      const result=await response.json();
+      if(!response.ok) throw new Error(result.error);
+      setLogoUrl(result.logoUrl || "");setLogoFile(null);
+    } catch(e) {notify(e instanceof Error?e.message:"No se pudo guardar la marca.");return;}
+    finally {setBrandBusy(false);}
     document.body.style.setProperty("--brand", brandColor);
     document.body.style.setProperty("--brand-bright", brandColor);
     document.body.style.setProperty("--brand-hover", `color-mix(in srgb, ${brandColor} 82%, #000)`);
@@ -217,7 +243,7 @@ export default function AdminPanel({adminName="Administrador"}:{adminName?:strin
       if (!courseSlots.length || !coursePrice || !courseStarts || !courseEnds) { notify("Completa precio, fechas y al menos un horario"); return; }
       if (courseEnds < courseStarts) { notify("La fecha de fin debe ser posterior a la fecha de inicio"); return; }
       const currentCourse = courses.find((course) => course.id === editingCourseId);
-      const course: Course = { id: currentCourse?.id || `course-${Date.now()}`, name: formTitle, level: courseLevel, teachers: courseTeachers, students: courseStudents, price: coursePrice, starts: courseStarts, ends: courseEnds, slots: courseSlots };
+      const course: Course = { id: currentCourse?.id || crypto.randomUUID(), name: formTitle, level: courseLevel, teachers: courseTeachers, students: courseStudents, price: coursePrice, starts: courseStarts, ends: courseEnds, slots: courseSlots };
       const nextCourses=currentCourse?courses.map(c=>c.id===course.id?course:c):[...courses,course];
       if(finance.contracts.some(f=>f.courseId===course.id && !course.teachers.includes(f.teacher))){notify("Modifica la asignación desde Profesores para actualizar los honorarios.");return;}
       if(!await persist("finance",{value:{...finance,courses:nextCourses}}))return;
@@ -408,7 +434,7 @@ export default function AdminPanel({adminName="Administrador"}:{adminName?:strin
             mark={(mark,state)=>persist("finance",{value:{...finance,attendance:[...(finance.attendance||[]).filter(m=>m.teacher!==mark.teacher || m.courseId!==mark.courseId || m.lessonId!==mark.lessonId),{...mark,state}]}})}
             save={receipt=>persist("finance",{value:{...finance,receipts:[...finance.receipts,receipt]}})}/>
         </> : section === "Mi academia" ? <>
-          <div className="admin-page-heading"><div><span className="admin-eyebrow">PERSONALIZACIÓN</span><h1>Mi academia</h1><p>Configura la identidad que verán tus alumnos en el subdominio.</p></div><div className="tenant-domain"><ShieldCheck size={16} /> {typeof window==="undefined"?"":window.location.hostname}</div></div><div className="settings-layout"><section className="admin-panel-card academy-settings-card"><div className="admin-card-heading"><div><h2>Marca y portal</h2><p>Estos datos personalizan el portal de estudiantes.</p></div></div><label className="admin-form-label">Nombre de la academia<input value={academyName} onChange={(e) => setAcademyName(e.target.value)} /></label><label className="admin-form-label">URL del logo<input value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="https://.../logo.png" /></label><label className="admin-form-label">Color principal<div className="color-picker-row"><input type="color" value={brandColor} onChange={(e) => setBrandColor(e.target.value)} /><input value={brandColor} onChange={(e) => setBrandColor(e.target.value)} /></div></label><button className="admin-primary-button" onClick={() => void saveAcademySettings()}><CheckCircle2 size={16} /> Guardar cambios</button><p className="admin-form-hint">El logo y el color se guardan y se aplican al subdominio de esta academia.</p></section><section className="admin-panel-card portal-preview-card"><div className="admin-card-heading"><div><h2>Vista previa del estudiante</h2><p>Ejemplo del encabezado de tu portal</p></div></div><div className="portal-preview" style={{ ["--preview-brand" as string]: brandColor } as React.CSSProperties}><div className="preview-header"><span>{logoUrl ? <img src={logoUrl} alt="" /> : <Activity size={18} />}</span><strong>{academyName}</strong></div><div className="preview-welcome"><small>MIÉRCOLES, 18 NOV</small><h3>Hola, Mateo</h3><p>Sede Miraflores</p></div><div className="preview-class"><span>CLASE DE HOY</span><strong>Control de Saques &amp; Topspin</strong><button>Confirmar asistencia</button></div></div></section></div>
+          <div className="admin-page-heading"><div><span className="admin-eyebrow">PERSONALIZACIÓN</span><h1>Mi academia</h1><p>Configura la identidad que verán tus alumnos en el subdominio.</p></div><div className="tenant-domain"><ShieldCheck size={16} /> {typeof window==="undefined"?"":window.location.hostname}</div></div><div className="settings-layout"><section className="admin-panel-card academy-settings-card"><div className="admin-card-heading"><div><h2>Marca y portal</h2><p>Estos datos personalizan el portal de estudiantes.</p></div></div><label className="admin-form-label">Nombre de la academia<input value={academyName} onChange={(e) => setAcademyName(e.target.value)} /></label><label className="admin-form-label">Logo de la academia<input type="file" className="academy-logo-input" accept="image/png,image/jpeg,image/webp" disabled={brandBusy} onChange={e=>{void chooseLogo(e.target.files?.[0]);e.target.value="";}}/><small>PNG, JPG o WebP · Hasta 5 MB</small></label><details className="logo-link-option"><summary>Usar un enlace al logo</summary><label className="admin-form-label">URL del logo<input type="url" value={logoUrl.startsWith("/api/public/logo") ? "" : logoUrl} onChange={e=>{setLogoFile(null);setLogoUrl(e.target.value);}} placeholder="https://.../logo.png"/></label></details><label className="admin-form-label">Color principal<div className="color-picker-row"><input type="color" value={brandColor} onChange={(e) => setBrandColor(e.target.value)} /><input value={brandColor} onChange={(e) => setBrandColor(e.target.value)} /></div></label><button className="admin-primary-button" disabled={brandBusy} onClick={() => void saveAcademySettings()}><CheckCircle2 size={16} /> Guardar cambios</button><p className="admin-form-hint">El logo y el color se guardan y se aplican al subdominio de esta academia.</p></section><section className="admin-panel-card portal-preview-card"><div className="admin-card-heading"><div><h2>Vista previa del estudiante</h2><p>Ejemplo del encabezado de tu portal</p></div></div><div className="portal-preview" style={{ ["--preview-brand" as string]: brandColor } as React.CSSProperties}><div className="preview-header"><span>{logoPreview || logoUrl ? <img src={logoPreview || logoUrl} alt="" /> : <Activity size={18} />}</span><strong>{academyName}</strong></div><div className="preview-welcome"><small>MIÉRCOLES, 18 NOV</small><h3>Hola, Mateo</h3><p>Sede Miraflores</p></div><div className="preview-class"><span>CLASE DE HOY</span><strong>Control de Saques &amp; Topspin</strong><button>Confirmar asistencia</button></div></div></section></div>
         </> : <>
           <div className="admin-page-heading"><div><h1>{section}</h1><p>{sectionDescription(section)}</p></div>{actionLabel[section] && <button className="admin-primary-button" onClick={() => openCreate(section)}><Plus size={17} />{actionLabel[section]}</button>}</div>
           {section === "Rankings" && <StandingsTable rows={opsReady?academyTable(persistedEvents):undefined} error={!!opsError}/>}
@@ -429,7 +455,7 @@ export default function AdminPanel({adminName="Administrador"}:{adminName?:strin
       </div>
     </section>
     {dialog && !scheduleEditor && <Modal className={`admin-form-modal ${section === "Profesores" ? "teacher-modal" : section === "Cursos" ? "course-modal" : section === "Clases" ? "class-modal" : ""}`} labelledBy="admin-create-title" notice={toast} onDismiss={() => setDialog(false)}>
-      <div className="admin-modal-heading"><div><span className="admin-eyebrow">{section.toUpperCase()}</span><h2 id="admin-create-title">{section === "Alumnos" && editingStudent ? "Editar alumno" : section === "Profesores" && editingTeacher ? "Editar profesor" : section === "Cursos" && editingCourseId ? "Editar curso" : section === "Rankings" && editingRankingId ? "Editar ranking" : actionLabel[section] || "Nuevo registro"}</h2><p>{section === "Alumnos" ? "Ingresa los datos del estudiante y asígnale su nivel." : section === "Profesores" ? "Asigna sus cursos, fija los honorarios de cada uno y marca su disponibilidad." : section === "Cursos" ? "Configura el programa completo de enseñanza: grupo, costo, fechas y horario." : section === "Clases" ? "Añade una sesión a uno de los cursos asociados al profesor." : section === "Rankings" ? "Define fecha, sede, aforo y tarifas para alumnos y público general." : "Completa los datos principales para continuar."}</p></div><button className="admin-icon-button" aria-label="Cerrar" onClick={() => { setDialog(false); setEditingCourseId(null); setEditingRankingId(null); }}><X size={18} /></button></div>
+      <div className="admin-modal-heading"><div><span className="admin-eyebrow">{section.toUpperCase()}</span><h2 id="admin-create-title">{section === "Alumnos" && editingStudent ? "Editar alumno" : section === "Profesores" && editingTeacher ? "Editar profesor" : section === "Cursos" && editingCourseId ? "Editar curso" : section === "Rankings" && editingRankingId ? "Editar ranking" : actionLabel[section] || "Nuevo registro"}</h2><p>{section === "Alumnos" ? "Ingresa los datos del estudiante y asígnale su nivel." : section === "Profesores" ? "Asigna sus cursos, fija los honorarios de cada uno y marca su disponibilidad." : section === "Cursos" ? "Define el costo, las fechas y el horario. Puedes asignar profesores y alumnos más adelante." : section === "Clases" ? "Añade una sesión a uno de los cursos asociados al profesor." : section === "Rankings" ? "Define fecha, sede, aforo y tarifas para alumnos y público general." : "Completa los datos principales para continuar."}</p></div><button className="admin-icon-button" aria-label="Cerrar" onClick={() => { setDialog(false); setEditingCourseId(null); setEditingRankingId(null); }}><X size={18} /></button></div>
       <form onSubmit={saveRow}>
         {(section === "Alumnos" || section === "Profesores") && <>
           <label className="admin-form-label">Nombre y apellido<input autoFocus required value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder={section === "Alumnos" ? "Ej. Mateo Gonzales" : "Ej. Carlos Mendoza"} /></label>
@@ -446,8 +472,10 @@ export default function AdminPanel({adminName="Administrador"}:{adminName?:strin
           <label className="admin-form-label">Nombre del curso<input autoFocus required value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="Ej. Fundamentos del tenis de mesa" /></label>
           <div className="admin-form-grid"><label className="admin-form-label">Nivel del curso<select value={courseLevel} onChange={(e) => setCourseLevel(e.target.value)}><option>Básico</option><option>Intermedio</option><option>Avanzado</option></select></label><label className="admin-form-label">Costo total del curso<div className="admin-money-input"><span>S/.</span><input type="number" min="0" step="0.01" required value={coursePrice} onChange={(e) => setCoursePrice(e.target.value)} placeholder="280.00" /></div></label></div>
           <div className="admin-form-grid"><label className="admin-form-label">Fecha de inicio<input type="date" required value={courseStarts} onChange={(e) => setCourseStarts(e.target.value)} /></label><label className="admin-form-label">Fecha de fin<input type="date" min={courseStarts || undefined} required value={courseEnds} onChange={(e) => setCourseEnds(e.target.value)} /></label></div>
-          <MultiSelect label="Profesores asociados" placeholder="Selecciona profesores" options={rows.Profesores.map((row) => row[0])} selected={courseTeachers} onChange={setCourseTeachers} emptyLabel="Puedes asignar un profesor al crear su ficha." />
-          <MultiSelect label="Participantes del curso" placeholder="Busca y selecciona alumnos" options={rows.Alumnos.map((row) => row[0])} selected={courseStudents} onChange={setCourseStudents} emptyLabel="Puedes matricular alumnos después." />
+          <details className="course-assignments"><summary>Asignar profesores y alumnos <small>Opcional</small></summary>
+            {rows.Profesores.length ? <MultiSelect label="Profesores asociados" placeholder="Selecciona profesores" options={rows.Profesores.map(row=>row[0])} selected={courseTeachers} onChange={setCourseTeachers} emptyLabel="Puedes asignarlos más adelante."/> : <p>Aún no hay profesores registrados.</p>}
+            {rows.Alumnos.length ? <MultiSelect label="Participantes del curso" placeholder="Selecciona alumnos" options={rows.Alumnos.map(row=>row[0])} selected={courseStudents} onChange={setCourseStudents} emptyLabel="Puedes matricularlos más adelante."/> : <p>Aún no hay alumnos registrados.</p>}
+          </details>
           <div className="course-schedule-card"><div><span className="course-schedule-icon"><CalendarDays size={18} /></span><div><strong>Horario semanal</strong><small>{courseSlots.length ? `${courseSlots.length} bloques · ${courseSlots.length * 2} horas por semana` : "Aún no has configurado días y horas"}</small></div></div><button type="button" className="admin-secondary-button" onClick={() => openCourseSchedule(null)}><CalendarClock size={16} /> Ver y editar horario</button></div>
         </>}
         {section === "Clases" && <>

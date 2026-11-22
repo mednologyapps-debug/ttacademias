@@ -17,7 +17,7 @@ async function demoRead():Promise<Records> {
 }
 export async function records(academy:string,tournamentsOnly=false):Promise<Records> {
   if(demo(academy)) return demoRead();
-  const [rows]=await getDb().execute<RowDataPacket[]>("SELECT record_key,revision,CAST(payload AS CHAR CHARACTER SET utf8mb4) AS payload FROM academy_operations WHERE academy_id=?"+(tournamentsOnly?" AND record_key LIKE 'event:%'":""),[academy]);
+  const [rows]=await getDb().execute<RowDataPacket[]>("SELECT record_key,revision,CAST(payload AS CHAR CHARACTER SET utf8mb4) AS payload FROM academy_operations WHERE academy_id=?"+(tournamentsOnly?" AND record_key LIKE 'event:%'":" AND record_key<>'brand:logo' AND record_key NOT LIKE 'inquiry:%'"),[academy]);
   return Object.fromEntries(rows.map(r=>[r.record_key,{revision:r.revision,value:typeof r.payload==="string"?JSON.parse(r.payload):r.payload}]));
 }
 export async function record(academy:string,key:string):Promise<RecordState<unknown>|undefined> {

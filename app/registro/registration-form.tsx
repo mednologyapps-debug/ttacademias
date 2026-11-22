@@ -1,5 +1,6 @@
 "use client";
 
+import InquiryForm from "./inquiry-form";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { enrollmentLevels, type Applicant, type Offer } from "@/lib/enrollment-types";
@@ -19,7 +20,7 @@ export default function RegistrationForm({ embedded = false }: { embedded?: bool
   const [message,setMessage] = useState("");
   const [attempt,setAttempt] = useState(0);
   useEffect(() => {
-    if (step !== 2) return;
+    if (step === 3) return;
     const controller = new AbortController();
     setLoading(true);
     fetch("/api/public/enrollment",{signal:controller.signal,cache:"no-store"}).then(async res => {
@@ -57,7 +58,7 @@ export default function RegistrationForm({ embedded = false }: { embedded?: bool
     } catch(e) { setMessage(e instanceof Error ? e.message : "No se pudo enviar tu solicitud."); }
     finally { setBusy(false); }
   }
-  const panel = <section className="enroll-form">
+  const panel = loading && step===1 ? <section className="enroll-form" role="status">Consultando horarios…</section> : !loading && !options.length && !message ? <InquiryForm/> : !loading && !options.length ? <section className="enroll-form"><p role="alert">{message}</p><button className="enroll-back" onClick={()=>{setMessage("");setLoading(true);setAttempt(n=>n+1);}}>Volver a consultar</button></section> : <section className="enroll-form">
     {step === 3 ? <div role="status"><h2>Solicitud recibida</h2><p>La administración de tu academia ya puede revisar tus datos y tu horario elegido.</p>
       <p><strong>{level}</strong> · {slots.find(o=>o.id===slot)?.schedule} · {venue}</p></div> : <>
     <h2>Matricularme</h2><p aria-live="polite">{step === 1 ? "1 de 2 · Datos personales" : "2 de 2 · Elige dónde y cuándo entrenar"}</p>

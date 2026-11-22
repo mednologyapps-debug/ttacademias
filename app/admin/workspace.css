@@ -64,3 +64,8 @@
   .admin-app .admin-sidebar:not(.open) { visibility: hidden; }
   .admin-app .admin-sidebar { transition: transform .2s ease; }
 }
+.academy-logo-input::file-selector-button {cursor:pointer;border:0;border-radius:6px;padding:6px 10px;margin-right:12px;background:#edf2fa;color:#243a57;font-weight:650}
+.logo-link-option summary,.course-assignments summary {cursor:pointer;color:#344963;font-weight:600}
+.course-assignments {padding:12px;border:1px solid #dce4ee;border-radius:10px}
+.course-assignments small {font-weight:400;color:#53647b}
+.course-assignments[open] .multi-select,.logo-link-option[open] label {margin-top:12px}

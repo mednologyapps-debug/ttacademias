@@ -22,3 +22,8 @@ dialog.public-form-dialog.enroll {width:min(580px,100%)}
 .offer-editor {display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin-top:16px}
 .offer-editor label {flex:1 1 145px}
 @media(max-width:480px) {.enroll-fields {grid-template-columns:1fr;gap:12px}}
+.inquiry-form textarea {resize:vertical;width:100%;min-height:115px;box-sizing:border-box;padding:12px;border:1px solid #b8c8d8;border-radius:9px;background:white;color:#16283e;font:inherit}
+.inquiry-form textarea:focus-visible {outline:2px solid var(--brand,#1554d1);outline-offset:2px}
+.enquiry-inbox article {display:grid;gap:6px;padding-block:12px;border-top:1px solid #dae4ed;overflow-wrap:anywhere}
+.enquiry-inbox p {white-space:pre-wrap;margin:0}
+.enquiry-inbox button {justify-self:start}

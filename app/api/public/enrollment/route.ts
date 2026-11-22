@@ -2,7 +2,7 @@ import { validBirthDate, validEmail, validPhone } from "@/lib/enrollment-types";
 import { apply, EnrollmentError, failure, offers, publicAcademy } from "@/lib/enrollment";
 
 export async function GET() {
-  try { return Response.json({ offers: await offers(await publicAcademy()) }, { headers: { "Cache-Control": "no-store" } }); }
+  try { return Response.json({ offers: await offers(await publicAcademy(),true) }, { headers: { "Cache-Control": "no-store" } }); }
   catch (e) { return failure(e); }
 }
 export async function POST(request: Request) {

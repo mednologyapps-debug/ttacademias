@@ -1,7 +1,7 @@
 import type {AttendanceMark,Lesson} from "./teaching-ledger";
 export type Course = { id:string; name:string; level:string; teachers:string[]; students:string[]; price:string; starts:string; ends:string; slots:string[] };
 export type Contract = { courseId:string; teacher:string; role:"Principal"|"De apoyo"; cents:number };
-export type Receipt = { id:string; courseId:string; student:string; cents:number; date:string };
+export type Receipt = { id:string; studentId?:string; courseId:string; student:string; cents:number; date:string };
 export type Finance = { courses:Course[]; teachers:string[][]; contracts:Contract[]; receipts:Receipt[]; attendance?:AttendanceMark[]; lessons?:Lesson[] };
 export function validateFinance(f:Finance) {
   if(!f || ![f.courses,f.teachers,f.contracts,f.receipts].every(Array.isArray)) throw Error("Datos de cursos inválidos.");

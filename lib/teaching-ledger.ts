@@ -1,6 +1,6 @@
 import type {Contract,Course} from "./course-finance";
 
-export type Lesson={id:string;courseId:string;title:string;startsAt:string;teacher?:string;status?:string};
+export type Lesson={id:string;projectedId?:string;courseId:string;title:string;startsAt:string;teacher?:string;status?:string};
 export type AttendanceMark={lessonId:string;courseId:string;teacher:string;state:"taught"|"missed"|"pending";startsAt:string};
 export type Income={id:string;courseId:string|null;student:string;concept:string;cents:number;date:string;source:string;reference?:string|null};
 export type LedgerFeed={lessons:Lesson[];income:Income[]};
@@ -29,7 +29,7 @@ export function courseLessons(course:Course, official:Lesson[], named:Lesson[]) 
   const actual=official.filter(s=>s.courseId===course.id);
   const scheduled=named.filter(s=>s.courseId===course.id);
   if(actual.length) {
-    return [...actual.filter(s=>s.status!=="cancelled"),...scheduled.filter(s=>s.status!=="cancelled" && !actual.some(a=>Date.parse(a.startsAt)===Date.parse(s.startsAt) && a.teacher===s.teacher))]
+    return [...actual.filter(s=>s.status!=="cancelled"),...scheduled.filter(s=>s.status!=="cancelled" && !actual.some(a=>a.id===s.projectedId || Date.parse(a.startsAt)===Date.parse(s.startsAt) && a.teacher===s.teacher))]
       .sort((a,b)=>Date.parse(a.startsAt)-Date.parse(b.startsAt));
   }
   const base=weeklyLessons(course);

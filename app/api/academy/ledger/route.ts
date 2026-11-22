@@ -2,7 +2,8 @@ import type {RowDataPacket} from "mysql2";
 import {adminAcademy} from "@/lib/enrollment";
 import {recordedLessons} from "@/lib/recorded-lessons";
 import {getDb} from "@/lib/db";
-import {operationsFailure} from "@/lib/operations-store";
+import type {Tournament} from "@/lib/tournament";
+import {records,operationsFailure} from "@/lib/operations-store";
 import {uniqueIncome,type LedgerFeed} from "@/lib/teaching-ledger";
 
 export async function GET() {
@@ -22,6 +23,14 @@ export async function GET() {
       feed.income=uniqueIncome(payments.map(r=>({id:r.id,courseId:r.purpose==="enrollment"?r.reference_id:null,
         student:r.full_name,concept:r.purpose==="enrollment"?"Matrícula":r.purpose==="ranking"?"Ranking":"Membresía",
         cents:Math.round(Number(r.amount)*100),date:r.paid_date,source:r.provider?.toLowerCase()==="izipay"?"Izipay":r.provider||"Registrado",reference:r.provider_reference})));
+    }
+    const events=await records(academy,true);
+    for(const [key,row] of Object.entries(events)){
+      if(!key.startsWith("event:"))continue;
+      const {event}=row.value as Tournament;
+      for(const p of event.participants)if(p.paid && p.receipt?.cents)feed.income.push({
+        id:event.id+"-"+p.id,student:p.name,cents:p.receipt.cents,date:p.receipt.date,courseId:null,source:"Manual",concept:event.title
+      });
     }
     return Response.json(feed,{headers:{"Cache-Control":"private, no-store"}});
   }catch(e){return operationsFailure(e);}

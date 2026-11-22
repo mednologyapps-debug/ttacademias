@@ -9,7 +9,7 @@ import RankingRegistration from "./ranking/[id]/ranking-registration";
 import "./landing-editorial.css";
 import { Activity, ArrowLeft, ArrowRight, CalendarDays, Menu, Trophy, X } from "lucide-react";
 
-type Props = { academyName: string; logoUrl: string | null; primaryColor: string; ranking: { id: string; title: string; startsAt: string; venue: string; studentPrice: string; publicPrice: string; capacity: number } | null; teachers: string[] };
+type Props = { academyName: string; logoUrl: string | null; primaryColor: string; teachers: string[] };
 const slides = [
   { image: "https://images.unsplash.com/photo-1774755458463-224dc3ca8331?auto=format&fit=crop&w=2400&q=85", eyebrow: "TENIS DE MESA · MIRAFLORES", title: <>Cada punto<br/>te acerca a <em>más.</em></>, text: "Entrenamiento con propósito, buenos profesores y una comunidad que te impulsa a mejorar.", cta: "Conoce la academia" },
   { image: "https://images.unsplash.com/photo-1786025106050-1aa8eaa5ad3e?auto=format&fit=crop&w=2400&q=85", eyebrow: "TU JUEGO, A TU RITMO", title: <>Aprende. Entrena.<br/><em>Vuelve mejor.</em></>, text: "Encuentra tu nivel, construye técnica y disfruta cada sesión dentro y fuera de la mesa.", cta: "Quiero entrenar" },
@@ -26,9 +26,9 @@ const demoCoaches: Record<string, { portrait: string; specialty: string }> = {
   "Lucía Salazar": { portrait: "/images/team/lucia.webp", specialty: "Desarrollo deportivo" },
 };
 
-export default function AcademyLanding({ academyName, logoUrl, primaryColor, ranking: publishedRanking, teachers }: Props) {
+export default function AcademyLanding({ academyName, logoUrl, primaryColor, teachers }: Props) {
   const {result: standings}=useStandings();
-  const ranking=publishedRanking && !standings?.started.includes(publishedRanking.id)?publishedRanking:null;
+  const ranking=standings?.open?.[0];
   const [slide, setSlide] = useState(0); const [menuOpen, setMenuOpen] = useState(false); const [modal, setModal] = useState<"registration" | "ranking" | null>(null);
   const current = slides[slide];
   useEffect(() => {
@@ -48,7 +48,6 @@ export default function AcademyLanding({ academyName, logoUrl, primaryColor, ran
     const timer = window.setInterval(() => setSlide((n) => (n + 1) % slides.length), 7000);
     return () => window.clearInterval(timer);
   }, [modal, menuOpen]);
-  useEffect(()=>{if(!ranking||ranking.id!=="demo-ranking")return;try{const key="ttacademias:rankings";const saved=JSON.parse(localStorage.getItem(key)||"[]") as Array<Record<string,unknown>&{id:string}>;if(!saved.some(item=>item.id===ranking.id)){const date=new Date(ranking.startsAt);saved.push({id:ranking.id,title:ranking.title,date:date.toISOString().slice(0,10),time:date.toLocaleTimeString("es-PE",{hour:"numeric",minute:"2-digit"}),venue:ranking.venue,studentPrice:Number(ranking.studentPrice),publicPrice:Number(ranking.publicPrice),capacity:ranking.capacity,participants:[]});localStorage.setItem(key,JSON.stringify(saved))}}catch{}},[ranking]);
   return <main className="academy-landing-v2" style={{ ["--brand" as string]: primaryColor } as React.CSSProperties}>
     <header className="club-header">
       <div className="club-nav">
@@ -128,7 +127,7 @@ export default function AcademyLanding({ academyName, logoUrl, primaryColor, ran
         })}
       </div>
     </section>
-    <section id="ranking" className="landing-ranking-v2"><div className="ranking-v2-orb"/><div className="ranking-v2-copy"><h2>{ranking?<>Ranking Relámpago<br/><em>de la Academia</em></>:<>Consulta el ranking<br/><em>de la academia</em></>}</h2><p>{ranking?"Revisa los detalles y asegura tu lugar en el próximo encuentro.":"Revisa la tabla de posiciones y descubre cómo avanza la comunidad de la academia."}</p><a href="/rankings" className="ranking-v2-link">Ver tabla de posiciones</a></div>{ranking?<article className="ranking-v2-card"><div className="ranking-status-v2">Inscripción abierta</div><h3>{ranking.title}</h3><div className="ranking-facts-v2"><p><CalendarDays size={17}/><span><small>Fecha y hora</small><strong>{new Date(ranking.startsAt).toLocaleString("es-PE",{dateStyle:"medium",timeStyle:"short"})}</strong></span></p><p><Activity size={17}/><span><small>Sede</small><strong>{ranking.venue}</strong></span></p></div><div className="ranking-prices-v2"><div><small>Tarifa estudiante</small><strong>S/ {Number(ranking.studentPrice).toFixed(2)}</strong></div><div><small>Tarifa externa</small><strong>S/ {Number(ranking.publicPrice).toFixed(2)}</strong></div></div><div className="ranking-card-footer-v2"><span>Aforo máximo: {ranking.capacity} jugadores</span><button type="button" onClick={()=>setModal("ranking")} className="ranking-v2-primary">Inscribirme</button></div></article>:<div className="ranking-v2-empty"><Trophy size={26}/><strong>Pronto habrá un nuevo ranking</strong><span>La tabla de posiciones de la academia está disponible para consulta.</span></div>}</section>
+    <section id="ranking" className="landing-ranking-v2"><div className="ranking-v2-orb"/><div className="ranking-v2-copy"><h2>{ranking?<>Próximo ranking<br/><em>de la academia</em></>:<>Consulta el ranking<br/><em>de la academia</em></>}</h2><p>{ranking?"Revisa los detalles y asegura tu lugar en el próximo encuentro.":"Revisa la tabla de posiciones y descubre cómo avanza la comunidad de la academia."}</p><a href="/rankings" className="ranking-v2-link">Ver tabla de posiciones</a></div>{ranking?<article className="ranking-v2-card"><div className="ranking-status-v2">Inscripción abierta</div><h3>{ranking.title}</h3><div className="ranking-facts-v2"><p><CalendarDays size={17}/><span><small>Fecha y hora</small><strong>{new Date(ranking.date+"T12:00:00").toLocaleDateString("es-PE",{dateStyle:"medium"})+" · "+ranking.time}</strong></span></p><p><Activity size={17}/><span><small>Sede</small><strong>{ranking.venue}</strong></span></p></div><div className="ranking-prices-v2"><div><small>Tarifa estudiante</small><strong>S/ {Number(ranking.studentPrice).toFixed(2)}</strong></div><div><small>Tarifa externa</small><strong>S/ {Number(ranking.publicPrice).toFixed(2)}</strong></div></div><div className="ranking-card-footer-v2"><span>Aforo máximo: {ranking.capacity} jugadores</span><button type="button" onClick={()=>setModal("ranking")} className="ranking-v2-primary">Inscribirme</button></div></article>:<div className="ranking-v2-empty"><Trophy size={26}/><strong>Pronto habrá un nuevo ranking</strong><span>La tabla de posiciones de la academia está disponible para consulta.</span></div>}</section>
     <footer className="landing-footer-v2"><Link href="#inicio" className="landing-brand-v2"><span><Activity size={18}/></span>{academyName}</Link><span>Tenis de mesa, comunidad y progreso.</span><Link href="/login">Acceso para alumnos y profesores</Link></footer>
     {modal && (
       <Modal className={`public-form-dialog ${modal === "registration" ? "enroll" : "ranking"}`}

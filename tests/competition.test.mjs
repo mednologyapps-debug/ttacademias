@@ -121,3 +121,26 @@ test("Solo una falta confirmada reduce el honorario y el prorrateo conserva los 
   const receipts=[{id:"1",source:"Izipay",reference:"OP9"},{id:"2",source:"Izipay",reference:"OP9"},{id:"3",source:"Manual"}];
   assert.equal(uniqueIncome(receipts).length,2);
 });
+
+test("Inscripción y grupos comparten el mismo evento y la confirmación usa la lista guardada",()=>{
+  const offer={...event(2),time:"4:00 PM",publicPrice:24,participants:[]};
+  let t=transition(null,{kind:"save",event:offer});
+  assert.equal(t.phase,"open");
+  assert.throws(()=>transition(t,{kind:"start",bestOf:3}));
+  const players=event(2).participants.map(p=>({...p,kind:"Externo"}));
+  t=transition(t,{kind:"save",event:{...offer,participants:players}});
+  assert.equal(t.event.participants[0].receipt.cents,2400);
+  t=transition(t,{kind:"save",event:{...t.event,publicPrice:30}});
+  assert.equal(t.event.participants[0].receipt.cents,2400);
+  assert.throws(()=>transition(t,{kind:"withdraw"}));
+  assert.throws(()=>transition(t,{kind:"save",event:{...t.event,participants:[]}}));
+  t=transition(t,{kind:"confirm",event:offer});
+  assert.equal(t.groupGames.length,6);
+  assert.throws(()=>transition(t,{kind:"save",event:offer}));
+});
+test("Una clase reprogramada se contabiliza una sola vez en los honorarios",async()=>{
+  const {courseLessons}=await import("../lib/teaching-ledger.ts");
+  const lesson={id:"sql",title:"Clase",courseId:"c",teacher:"Ana",startsAt:"2026-11-21T18:00:00-05:00"};
+  const old={...lesson,id:"original",projectedId:"sql",startsAt:"2026-11-20T18:00:00-05:00"};
+  assert.deepEqual(courseLessons({id:"c"},[lesson],[old]),[lesson]);
+});

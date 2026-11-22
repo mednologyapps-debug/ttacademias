@@ -1,9 +1,9 @@
-export type Player = { id:string; name:string; dni?:string; paid:boolean; group?:number; weight:number; kind:"Alumno"|"Externo" };
+export type Player = { id:string; name:string; dni?:string; paid:boolean; receipt?:{cents:number;date:string}; group?:number; weight:number; kind:"Alumno"|"Externo" };
 export type EventInfo = { id:string; title:string; date:string; time:string; venue:string; capacity:number; studentPrice:number; publicPrice:number; participants:Player[] };
 export type SetScore = [number,number];
 export type Game = { id:string; a:string|null; b:string|null; sets:SetScore[] };
-export type Tournament = { event:EventInfo; phase:"confirmed"|"groups"|"bracket"|"closed"; bestOf:3|5|7; groupGames:Game[]; rounds:Game[][] };
-export type Move = {kind:"confirm";event:EventInfo} | {kind:"start";bestOf:3|5|7} | {kind:"score";game:string;sets:SetScore[]} | {kind:"draw"} | {kind:"swap";from:number;to:number} | {kind:"close"};
+export type Tournament = { event:EventInfo; phase:"open"|"withdrawn"|"confirmed"|"groups"|"bracket"|"closed"; bestOf:3|5|7; groupGames:Game[]; rounds:Game[][] };
+export type Move = {kind:"save";event:EventInfo} | {kind:"withdraw"} | {kind:"confirm";event:EventInfo} | {kind:"start";bestOf:3|5|7} | {kind:"score";game:string;sets:SetScore[]} | {kind:"draw"} | {kind:"swap";from:number;to:number} | {kind:"close"};
 function requireThat(condition:unknown,message:string):asserts condition { if(!condition) throw new Error(message); }
 export const groupsOf = (t:Tournament) => [...new Set(t.event.participants.filter(p=>p.paid).map(p=>p.group!))].sort((a,b)=>a-b);
 export function winner(g:Game) {
@@ -62,9 +62,34 @@ function advance(t:Tournament) {
   t.rounds.push(next);
 }
 export function transition(current:Tournament|null, action:Move):Tournament {
-  if(action.kind==="confirm") {
-    requireThat(!current,"El ranking ya se inició.");
+  if(action.kind==="save") {
+    requireThat(!current || current.phase==="open","Las inscripciones están cerradas.");
     const e=action.event;
+    requireThat(e && /^[\w-]{1,100}$/.test(e.id) && (!current || e.id===current.event.id),"Identificador inválido.");
+    requireThat(typeof e.title==="string" && e.title.trim() && e.title.length<=180 && typeof e.venue==="string" && e.venue.trim() && e.venue.length<=200,"Revisa el nombre y la sede.");
+    requireThat(/^\d{4}-\d{2}-\d{2}$/.test(e.date) && Number.isFinite(Date.parse(e.date)) && /^(1[0-2]|[1-9]):[0-5]\d [AP]M$/.test(e.time),"Revisa la fecha y hora.");
+    requireThat([e.studentPrice,e.publicPrice].every(n=>Number.isFinite(n)&&n>=0) && Number.isInteger(e.capacity) && e.capacity>=2 && e.capacity<=200,"Revisa los precios y el aforo.");
+    requireThat(Array.isArray(e.participants) && e.participants.length<=e.capacity,"Aforo completo.");
+    requireThat(e.participants.every(p=>p && typeof p.name==="string" && p.name.trim() && p.name.length<=160 && typeof p.id==="string" && p.id && (!p.dni || /^\d{8}$/.test(p.dni)) && ["Alumno","Externo"].includes(p.kind) && typeof p.paid==="boolean" && Number.isInteger(p.weight) && p.weight>=1 && p.weight<=5 && (!p.group || Number.isInteger(p.group) && p.group>0 && p.group<=100)),"Participante inválido.");
+    const ids=e.participants.map(p=>p.id), docs=e.participants.map(p=>p.dni).filter(Boolean);
+    requireThat(new Set(ids).size===ids.length && new Set(docs).size===docs.length,"Ya existe un participante con ese DNI.");
+    const prior=new Map(current?.event.participants.map(p=>[p.id,p])||[]);
+    const participants=e.participants.map(p=>{
+      const previous=prior.get(p.id);
+      requireThat(!previous?.paid || p.paid,"El pago de este participante ya fue confirmado.");
+      const receipt=previous?.receipt || (p.paid?{date:new Date().toLocaleDateString("sv-SE",{timeZone:"America/Lima"}),cents:Math.round((p.kind==="Alumno"?e.studentPrice:e.publicPrice)*100)}:undefined);
+      return {...p,receipt};
+    });
+    requireThat(!current?.event.participants.some(p=>p.paid && !ids.includes(p.id)),"Hay participantes con pago confirmado.");
+    return {event:{...e,participants},phase:"open",bestOf:3,groupGames:[],rounds:[]};
+  }
+  if(action.kind==="withdraw") {
+    requireThat(current?.phase==="open" && !current.event.participants.length,"Solo se puede eliminar un ranking sin participantes.");
+    return {...current,phase:"withdrawn"};
+  }
+  if(action.kind==="confirm") {
+    requireThat(!current || current.phase==="open","El ranking ya se inició.");
+    const e=current?.event || action.event;
     requireThat(e && typeof e.title==="string" && Array.isArray(e.participants) && e.participants.length<=512,"Datos del torneo inválidos.");
     const players=e.participants.filter(p=>p.paid);
     requireThat(players.length>=2 && players.every(p=>typeof p.id==="string" && p.id && typeof p.name==="string" && p.name.trim() && Number.isInteger(p.group) && p.group!>0),"Genera los grupos de todos los participantes con pago confirmado.");
@@ -79,7 +104,7 @@ export function transition(current:Tournament|null, action:Move):Tournament {
     }
     return t;
   }
-  requireThat(current && current.phase!=="closed","El ranking está cerrado o aún no se inició.");
+  requireThat(current && !["open","withdrawn","closed"].includes(current.phase),"El ranking está cerrado o aún no se inició.");
   const t=structuredClone(current);
   if(action.kind==="start") {
     requireThat(t.phase==="confirmed","Confirma los grupos antes de iniciar el ranking.");

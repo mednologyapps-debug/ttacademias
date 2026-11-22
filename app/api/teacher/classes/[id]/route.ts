@@ -32,7 +32,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (conflicts.length) return NextResponse.json({ error: "Ese horario se cruza con otra clase. Elige otro espacio." }, { status: 409 });
   }
   const status = action === "accept" ? "accepted" : "rescheduled";
-  const [result] = await getDb().execute("UPDATE classes SET status=?,starts_at=COALESCE(?,starts_at) WHERE id=? AND academy_id=? AND teacher_id=? AND status<>'cancelled'", [status, action === "reschedule" ? body.startsAt : null, id, user.academyId, user.id]);
+  const [result] = await getDb().execute("UPDATE classes SET status=?,starts_at=COALESCE(?,starts_at) WHERE id=? AND academy_id=? AND teacher_id=? AND status<>'cancelled'", [status, action === "reschedule" ? new Date(body.startsAt) : null, id, user.academyId, user.id]);
   if (!(result as { affectedRows: number }).affectedRows) return NextResponse.json({ error: "Clase no encontrada o no asignada a este profesor." }, { status: 404 });
-  return NextResponse.json({ ok: true, status });
+  return NextResponse.json({ ok: true, status, startsAt: action === "reschedule" ? new Date(body.startsAt).toISOString() : undefined });
 }

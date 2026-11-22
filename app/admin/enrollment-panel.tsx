@@ -5,7 +5,7 @@ import type { Enrollment, Offer } from "@/lib/enrollment-types";
 import "../registro/enrollment.css";
 
 type Course = { id:string; name:string; level:string; slots:string[]; ends:string };
-export default function EnrollmentPanel({ courses }: { courses?:Course[] }) {
+export default function EnrollmentPanel({ courses,onRegister }: { courses?:Course[];onRegister?:(person:Enrollment)=>void }) {
   const managing = courses !== undefined;
   const [offers,setOffers] = useState<Offer[]>([]);
   const [requests,setRequests] = useState<Enrollment[]>([]);
@@ -63,9 +63,9 @@ export default function EnrollmentPanel({ courses }: { courses?:Course[] }) {
     </> : <>
       <button className="admin-plain-link" onClick={()=>refresh()}>Actualizar solicitudes</button>
       {!requests.length && !error ? <p>Todavía no se han recibido solicitudes.</p> : requests.length>0 && <div className="admin-table-wrap"><table><thead>
-        <tr><th>Solicitante</th><th>Nacimiento</th><th>Contacto</th><th>Sede</th><th>Nivel y horario</th></tr></thead>
+        <tr><th>Solicitante</th><th>Nacimiento</th><th>Contacto</th><th>Sede</th><th>Nivel y horario</th>{onRegister&&<th>Alumno</th>}</tr></thead>
         <tbody>{requests.map(r=><tr key={r.id}><td><strong>{r.firstName} {r.lastName}</strong><small>DNI {r.dni}</small></td><td>{r.birthDate.split("-").reverse().join("/")}</td>
-          <td>{r.email}<small>{r.phone}</small></td><td>{r.venue}</td><td>{r.level}<small>{r.schedule}</small></td></tr>)}</tbody></table></div>}
+          <td>{r.email}<small>{r.phone}</small></td><td>{r.venue}</td><td>{r.level}<small>{r.schedule}</small></td>{onRegister&&<td><button type="button" className="admin-plain-link" onClick={()=>onRegister(r)}>Revisar ficha</button></td>}</tr>)}</tbody></table></div>}
     </>}
   </details></section>;
 }

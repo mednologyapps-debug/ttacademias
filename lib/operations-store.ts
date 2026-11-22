@@ -1,3 +1,4 @@
+import {projectCourses} from "./course-projection";
 import {mkdir,readFile,rename,writeFile} from "node:fs/promises";
 import {randomUUID} from "node:crypto";
 import path from "node:path";
@@ -16,18 +17,21 @@ async function demoRead():Promise<Records> {
 }
 export async function records(academy:string,tournamentsOnly=false):Promise<Records> {
   if(demo(academy)) return demoRead();
-  const [rows]=await getDb().execute<RowDataPacket[]>("SELECT record_key,revision,payload FROM academy_operations WHERE academy_id=?"+(tournamentsOnly?" AND record_key LIKE 'event:%'":""),[academy]);
+  const [rows]=await getDb().execute<RowDataPacket[]>("SELECT record_key,revision,CAST(payload AS CHAR CHARACTER SET utf8mb4) AS payload FROM academy_operations WHERE academy_id=?"+(tournamentsOnly?" AND record_key LIKE 'event:%'":""),[academy]);
   return Object.fromEntries(rows.map(r=>[r.record_key,{revision:r.revision,value:typeof r.payload==="string"?JSON.parse(r.payload):r.payload}]));
 }
 export async function record(academy:string,key:string):Promise<RecordState<unknown>|undefined> {
   if(demo(academy))return (await demoRead())[key];
-  const [rows]=await getDb().execute<RowDataPacket[]>("SELECT revision,payload FROM academy_operations WHERE academy_id=? AND record_key=?",[academy,key]);
+  const [rows]=await getDb().execute<RowDataPacket[]>("SELECT revision,CAST(payload AS CHAR CHARACTER SET utf8mb4) AS payload FROM academy_operations WHERE academy_id=? AND record_key=?",[academy,key]);
   if(!rows.length)return undefined;
   return {revision:rows[0].revision,value:typeof rows[0].payload==="string"?JSON.parse(rows[0].payload):rows[0].payload};
 }
 export async function adminRecords(academy:string) {
   const result=await records(academy);
-  if(result.finance || demo(academy))return result;
+  if(demo(academy))return result;
+  const [students]=await getDb().execute<RowDataPacket[]>("SELECT id,full_name,dni,DATE_FORMAT(birth_date,'%Y-%m-%d') birth,email,phone FROM users WHERE academy_id=? AND role='student' AND status='active' ORDER BY full_name",[academy]);
+  result.roster={revision:0,value:students.map(u=>[u.full_name,u.dni||"",u.birth||"",String(result["level:"+u.id]?.value||"Sin asignar"),u.email,u.phone||"","Activo"])};
+  if(result.finance)return result;
   const db=getDb();
   const query=(sql:string)=>db.execute<RowDataPacket[]>(sql,[academy]).then(([rows])=>rows);
   const [catalog,teachers,members,schedule]=await Promise.all([
@@ -74,4 +78,22 @@ export async function saveRecord(academy:string,key:string,expected:number,value
     if(!r.affectedRows) throw conflict();
   }
   return {revision,value};
+}
+
+
+export async function saveFinance(academy:string,expected:number,data:Finance,password?:string) {
+  if(demo(academy))return saveRecord(academy,"finance",expected,data);
+  const db=await getDb().getConnection();
+  try{
+    await db.beginTransaction();
+    // Serialize first saves as well as updates.
+    await db.execute("SELECT id FROM academies WHERE id=? FOR UPDATE",[academy]);
+    const [rows]=await db.execute<RowDataPacket[]>("SELECT revision,CAST(payload AS CHAR CHARACTER SET utf8mb4) AS payload FROM academy_operations WHERE academy_id=? AND record_key='finance' FOR UPDATE",[academy]);
+    if((rows[0]?.revision||0)!==expected)throw conflict();
+    const raw=rows[0]?.payload;
+    await projectCourses(db,academy,data,typeof raw==="string"?JSON.parse(raw):raw,password);
+    await db.execute("INSERT INTO academy_operations (academy_id,record_key,revision,payload) VALUES (?,'finance',?,?) ON DUPLICATE KEY UPDATE revision=VALUES(revision),payload=VALUES(payload)",[academy,expected+1,JSON.stringify(data)]);
+    await db.commit();
+    return {revision:expected+1,value:data};
+  }catch(e){await db.rollback();throw e;}finally{db.release();}
 }

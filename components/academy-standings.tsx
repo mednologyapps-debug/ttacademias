@@ -1,11 +1,12 @@
 "use client";
 import "./published-groups.css";
 import {useEffect,useState} from "react";
+import type {PublicRanking} from "@/lib/public-rankings";
 type Row={name:string;points:number;events:number;diff:number};
 type Competition={id:string;title:string;groups:{number:number;players:string[]}[]};
 import {groupLabel} from "@/lib/tournament";
 export function useStandings(groups=false) {
-  const [result,setResult]=useState<{table:Row[];started:string[];competitions?:Competition[]}|null>(null);
+  const [result,setResult]=useState<{open:PublicRanking[];table:Row[];started:string[];competitions?:Competition[]}|null>(null);
   const [error,setError]=useState(false);
   useEffect(()=>{
     const controller=new AbortController();
@@ -13,8 +14,8 @@ export function useStandings(groups=false) {
       const res=await fetch("/api/public/standings"+(groups?"?groups=1":""),{cache:"no-store",signal:controller.signal});
       if(!res.ok)throw Error();setResult(await res.json());setError(false);
     }catch{if(!controller.signal.aborted)setError(true);}}
-    void refresh();window.addEventListener("focus",refresh);
-    return ()=>{controller.abort();window.removeEventListener("focus",refresh);};
+    void refresh();const timer=window.setInterval(()=>{if(!document.hidden)void refresh();},15000);window.addEventListener("focus",refresh);
+    return ()=>{controller.abort();window.clearInterval(timer);window.removeEventListener("focus",refresh);};
   },[groups]);
   return {result,error};
 }

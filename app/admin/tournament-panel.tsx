@@ -15,7 +15,7 @@ export default function TournamentPanel({event,t,onMove,busy}:Props) {
   const [swap,setSwap]=useState<number|null>(null);
   const name=(id:string|null)=>t?.event.participants.find(p=>p.id===id)?.name || "Pase libre";
   const paid=event.participants.filter(p=>p.paid);
-  if(!t) return <div className="ops-card phase-actions"><p>Confirma la distribución para habilitar el inicio del torneo.</p>
+  if(!t) return <div className="ops-card phase-actions"><p>Al confirmar, se cierran las inscripciones y se publican los grupos con los {paid.length} participantes confirmados.</p>
     <button className="admin-primary-button" disabled={busy || paid.length<2 || paid.some(p=>!p.group)} onClick={()=>onMove({kind:"confirm",event})}>Confirmar grupos</button>
     <button disabled className="admin-secondary-button">Iniciar ranking</button></div>;
   if(t.phase==="confirmed")return <section className="ops-card group-editor"><header className="sheet-heading"><div><h2>Grupos confirmados</h2><p>{t.event.participants.filter(p=>p.paid).length} jugadores en {groupsOf(t).length} grupos</p></div></header>
